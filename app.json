@@ -1,0 +1,74 @@
+{
+  "expo": {
+    "name": "Shadab",
+    "slug": "shadab",
+    "version": "1.0.0",
+    "scheme": "shadab",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#0d2b22",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0d2b22"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.shadab.app",
+      "backgroundColor": "#0d2b22",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Used to upload food review photos",
+        "NSLocationWhenInUseUsageDescription": "Used to find your delivery address",
+        "NSUserNotificationsUsageDescription": "Used to send order updates and buffet alerts"
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundColor": "#0d2b22"
+      },
+      "package": "com.shadab.app",
+      "permissions": [
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.VIBRATE"
+      ]
+    },
+    "web": {
+      "bundler": "metro",
+      "favicon": "./assets/icon.png",
+      "backgroundColor": "#0d2b22",
+      "themeColor": "#c9a24b",
+      "output": "static"
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": ""
+      }
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#0d2b22",
+          "imageWidth": 200
+        }
+      ],
+      "expo-status-bar",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#c9a24b"
+        }
+      ],
+      "expo-apple-authentication"
+    ]
+  }
+}

@@ -1,0 +1,43 @@
+<svg viewBox="0 0 500 280" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#e9cd8f"/>
+      <stop offset="50%" stop-color="#c9a24b"/>
+      <stop offset="100%" stop-color="#9c7a34"/>
+    </linearGradient>
+    <linearGradient id="g2" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#f2dfa8"/>
+      <stop offset="100%" stop-color="#af8a3d"/>
+    </linearGradient>
+    <linearGradient id="bg1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#123b2e"/>
+      <stop offset="100%" stop-color="#0a2119"/>
+    </linearGradient>
+  </defs>
+  <rect width="500" height="280" fill="url(#bg1)" rx="14"/>
+  <ellipse cx="250" cy="110" rx="160" ry="80" fill="rgba(201,162,75,0.06)"/>
+  <circle cx="250" cy="100" r="56" fill="none" stroke="url(#g1)" stroke-width="0.8" stroke-dasharray="3 4" opacity="0.45"/>
+  <circle cx="250" cy="100" r="49" fill="none" stroke="rgba(201,162,75,0.2)" stroke-width="0.5"/>
+  <line x1="210" y1="72" x2="210" y2="120" stroke="url(#g1)" stroke-width="2" stroke-linecap="round"/>
+  <line x1="206" y1="72" x2="206" y2="84" stroke="url(#g1)" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="210" y1="72" x2="210" y2="84" stroke="url(#g1)" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="214" y1="72" x2="214" y2="84" stroke="url(#g1)" stroke-width="1.5" stroke-linecap="round"/>
+  <path d="M206 84 Q208 90 210 90 Q212 90 214 84" fill="none" stroke="url(#g1)" stroke-width="1.5"/>
+  <line x1="290" y1="72" x2="290" y2="120" stroke="url(#g1)" stroke-width="2" stroke-linecap="round"/>
+  <path d="M290 72 Q297 79 290 90" fill="url(#g2)" stroke="none"/>
+  <ellipse cx="250" cy="122" rx="36" ry="5.5" fill="url(#g1)"/>
+  <path d="M214 122 Q214 86 250 83 Q286 86 286 122 Z" fill="url(#g2)"/>
+  <path d="M228 105 Q232 91 243 87" stroke="rgba(255,255,255,0.28)" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  <rect x="248" y="75" width="4" height="9" rx="2" fill="url(#g1)"/>
+  <ellipse cx="250" cy="75" rx="6.5" ry="4" fill="url(#g1)"/>
+  <ellipse cx="250" cy="73" rx="3.5" ry="2.5" fill="#f5e9c4"/>
+  <text x="188" y="104" font-family="serif" font-size="9" fill="rgba(201,162,75,0.55)" text-anchor="middle">✦</text>
+  <text x="312" y="104" font-family="serif" font-size="9" fill="rgba(201,162,75,0.55)" text-anchor="middle">✦</text>
+  <text x="250" y="185" font-family="Georgia, 'Times New Roman', serif" font-size="64" font-style="italic" font-weight="bold" fill="#f3ead9" text-anchor="middle" letter-spacing="-1">Shadab</text>
+  <line x1="90" y1="210" x2="220" y2="210" stroke="url(#g1)" stroke-width="0.8" opacity="0.5"/>
+  <polygon points="250,205 255,210 250,215 245,210" fill="url(#g1)"/>
+  <line x1="280" y1="210" x2="410" y2="210" stroke="url(#g1)" stroke-width="0.8" opacity="0.5"/>
+  <text x="250" y="232" font-family="Georgia, serif" font-size="11" font-weight="bold" fill="url(#g1)" text-anchor="middle" letter-spacing="7">HYDERABADI CUISINE</text>
+  <rect x="375" y="252" width="88" height="20" rx="10" fill="rgba(139,195,74,0.15)" stroke="#8bc34a" stroke-width="1"/>
+  <text x="419" y="266" font-family="Arial, sans-serif" font-size="8.5" font-weight="bold" fill="#a8d873" text-anchor="middle" letter-spacing="0.5">☽ ZABIHA HALAL</text>
+</svg>

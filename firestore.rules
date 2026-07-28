@@ -1,0 +1,126 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAdminEmail() {
+      return request.auth != null && request.auth.token.email in [
+        'deccanbawarchi7@gmail.com',
+      ];
+    }
+    function isAdmin() {
+      return request.auth != null && (
+        request.auth.token.admin == true || isAdminEmail()
+      );
+    }
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    function protectedUserFields() {
+      return ['loyaltyPoints', 'loyaltyTier', 'totalOrderCount', 'totalSpend', 'createdAt'];
+    }
+
+    function clientSafeUserCreate(userId) {
+      let data = request.resource.data;
+      return data.uid == userId
+        && data.keys().hasAll(['uid', 'email', 'displayName'])
+        && !data.keys().hasAny(protectedUserFields());
+    }
+
+    function clientSafeUserUpdate() {
+      return !request.resource.data.diff(resource.data).affectedKeys()
+        .hasAny(protectedUserFields());
+    }
+
+    function clientSafeProfilePatch(userId) {
+      return request.resource.data.uid == userId
+        && request.resource.data.email is string
+        && request.resource.data.displayName is string
+        && !request.resource.data.diff(resource.data).affectedKeys()
+          .hasAny(protectedUserFields());
+    }
+
+    // Users — profile fields client-writable; loyalty & stats server-only
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isAdmin() || (isOwner(userId) && clientSafeUserCreate(userId));
+      allow update: if isAdmin() || (isOwner(userId) && (clientSafeUserUpdate() || clientSafeProfilePatch(userId)));
+      allow delete: if isAdmin();
+    }
+
+    // Menu — public read, admin write
+    match /menu/{itemId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Buffet — public read, admin write
+    match /buffet/{locationId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Orders — authenticated create/read own, admin manage; loyalty fields server-only on update
+    match /orders/{orderId} {
+      allow create: if request.auth != null
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.loyaltyAwarded == false;
+      allow read: if isAdmin() || (request.auth != null && resource.data.userId == request.auth.uid);
+      allow update: if isAdmin();
+    }
+
+    // Reviews — public read, authenticated create (1 per orderItem)
+    match /reviews/{reviewId} {
+      allow read: if true;
+      allow create: if request.auth != null;
+    }
+
+    // Promos — public read, admin write
+    match /promos/{promoId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Reservations — public create with required fields, admin manage
+    match /reservations/{reservationId} {
+      allow create: if request.resource.data.keys().hasAll([
+          'name', 'email', 'phone', 'partySize', 'date', 'time', 'status', 'locationId'
+        ])
+        && request.resource.data.name is string
+        && request.resource.data.email is string
+        && request.resource.data.phone is string
+        && request.resource.data.partySize is int
+        && request.resource.data.partySize >= 8
+        && request.resource.data.partySize <= 20
+        && request.resource.data.status == 'pending';
+      allow read, update: if isAdmin()
+        || (request.auth != null && resource.data.userId == request.auth.uid);
+    }
+
+    // Catering inquiries — public create with required fields, admin read
+    match /catering_inquiries/{docId} {
+      allow create: if request.resource.data.keys().hasAll([
+          'name', 'email', 'phone', 'eventDate', 'headcount', 'status'
+        ])
+        && request.resource.data.name is string
+        && request.resource.data.email is string
+        && request.resource.data.phone is string
+        && request.resource.data.headcount is int
+        && request.resource.data.headcount >= 10
+        && request.resource.data.status == 'pending';
+      allow read, update: if isAdmin();
+    }
+
+    // Locations — public read, admin write
+    match /locations/{locationId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // AI growth insights — admin read only, Cloud Functions write
+    match /admin_insights/{locationId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+  }
+}

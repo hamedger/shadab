@@ -1,0 +1,61 @@
+# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+
+# dependencies
+node_modules/
+
+# Expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# Native
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Metro
+.metro-health-check*
+
+# debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# macOS
+.DS_Store
+*.pem
+
+# Environment files — NEVER commit these
+.env
+.env.local
+.env.clover.local
+functions/.env
+functions/.secret.local
+
+# Firebase service account keys
+service-account.json
+*-service-account.json
+*-firebase-adminsdk-*.json
+
+# But DO commit this (no real values)
+!.env.example
+
+# Firebase
+functions/lib/
+functions/node_modules/
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+
+# typescript
+*.tsbuildinfo
+
+# generated native folders
+/ios
+/android
