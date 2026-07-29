@@ -15,7 +15,6 @@ import {
 import { LOCATION_ORDER_FULFILLMENT_HOURS } from '../constants/config'
 
 const northvilleHours = LOCATION_ORDER_FULFILLMENT_HOURS['chicago-il']
-const farmingtonHours = LOCATION_ORDER_FULFILLMENT_HOURS['farmington-hills-mi']
 
 describe('pickupScheduling', () => {
   it('returns today and tomorrow only', () => {
@@ -41,13 +40,7 @@ describe('pickupScheduling', () => {
     }
   })
 
-  it('builds Farmington Hills slots through 11:30 PM', () => {
-    const slots = buildPickupTimeSlots(farmingtonHours)
-    expect(slots[0]).toBe('11:30 AM')
-    expect(slots[slots.length - 1]).toBe('11:30 PM')
-  })
-
-  it('builds Northville slots through 10:00 PM', () => {
+  it('builds Chicago slots through 10:00 PM', () => {
     const slots = buildPickupTimeSlots(northvilleHours)
     expect(slots[slots.length - 1]).toBe('10:00 PM')
   })

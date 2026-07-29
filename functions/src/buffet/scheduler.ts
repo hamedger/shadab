@@ -10,21 +10,7 @@ function isSunday(): boolean {
   return now.getDay() === 0
 }
 
-// 11:00 AM Detroit — open lunch (Mon–Sat)
-export const openLunch = functions.onSchedule(
-  { schedule: '0 11 * * 1-6', timeZone: TIMEZONE },
-  async () => {
-    await db.collection('buffet').doc(LOCATION_ID).update({ isLunchActive: true })
-  },
-)
-
-// 3:00 PM Detroit — close lunch
-export const closeLunch = functions.onSchedule(
-  { schedule: '0 15 * * 1-6', timeZone: TIMEZONE },
-  async () => {
-    await db.collection('buffet').doc(LOCATION_ID).update({ isLunchActive: false })
-  },
-)
+// Buffet is dinner-only, 5:00 PM – 9:00 PM.
 
 // 5:00 PM Detroit — open dinner (Mon–Sat)
 export const openDinner = functions.onSchedule(

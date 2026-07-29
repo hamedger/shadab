@@ -56,14 +56,14 @@ export default function BuffetScreen() {
       <View style={styles.halalBar}>
         <HalalBadge size="sm" />
         <Text style={styles.halalText}>
-          100% Zabiha Halal · {location ? formatLocationShort(location) : 'Michigan'}
+          100% Zabiha Halal · {location ? formatLocationShort(location) : 'Chicago'}
         </Text>
       </View>
 
       <PageIntro
         eyebrow="Daily Royal Feast"
         title="The Buffet"
-        subtitle="Twenty authentic Hyderabadi dishes, refreshed daily. Lunch and dinner service, seven days a week."
+        subtitle="Twenty authentic Hyderabadi dishes, refreshed daily. Dinner service, six days a week."
       />
 
       <View style={styles.statusWrap}>
@@ -80,7 +80,7 @@ export default function BuffetScreen() {
           <Text style={styles.priceDays}>Monday – Saturday</Text>
           <Text style={[styles.priceValue, styles.priceValueGold]}>{formatCents(weekdayPrice)}</Text>
           <Text style={styles.priceUnit}>per guest</Text>
-          <Text style={styles.priceHours}>11 AM – 3 PM · 5 PM – 9 PM</Text>
+          <Text style={styles.priceHours}>5 PM – 9 PM</Text>
           <TouchableOpacity style={styles.goldBtn} onPress={() => router.push('/reservation' as never)}>
             <Text style={styles.goldBtnText}>Reserve</Text>
           </TouchableOpacity>

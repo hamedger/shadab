@@ -15,4 +15,4 @@ export {
   askGrowthCopilot,
 } from './ai/growthCopilot'
 export { getBuffetStatus } from './buffet/getBuffetStatus'
-export { openLunch, closeLunch, openDinner, closeDinner } from './buffet/scheduler'
+export { openDinner, closeDinner } from './buffet/scheduler'

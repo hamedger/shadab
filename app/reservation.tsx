@@ -2,9 +2,10 @@ import React, { useState, useEffect, useMemo } from 'react'
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native'
 import { Input } from '../components/ui/Input'
 import { Button } from '../components/ui/Button'
+import { ReservationDatePicker } from '../components/reservation/ReservationDatePicker'
 import { colors, spacing, borderRadius, fonts } from '../constants/theme'
 import { useReservation } from '../hooks/useReservation'
-import { RESERVATION_TIME_SLOTS } from '../lib/services/reservationService'
+import { MAX_ADVANCE_DAYS, RESERVATION_TIME_SLOTS } from '../lib/services/reservationService'
 import { getReservationFeeCents, isGrandOpeningWindow } from '../constants/reservation'
 
 const OCCASIONS = ['Birthday', 'Anniversary', 'Business Dinner', 'Date Night', 'Family Gathering', 'Other']
@@ -50,7 +51,9 @@ export default function ReservationScreen() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <Text style={styles.heading}>Reserve Your Table</Text>
-      <Text style={styles.subtitle}>Book up to 30 days in advance · 15-minute seating slots</Text>
+      <Text style={styles.subtitle}>
+        Dinner buffet only, 5 – 9 PM · book up to {MAX_ADVANCE_DAYS} days in advance · 15-minute slots
+      </Text>
 
       <View style={styles.noticeBox}>
         <Text style={styles.noticeTitle}>
@@ -76,7 +79,7 @@ export default function ReservationScreen() {
       <Input label="Full Name *" value={name} onChangeText={setName} placeholder="Your name" />
       <Input label="Email *" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" placeholder="For confirmation" />
       <Input label="Phone *" value={phone} onChangeText={setPhone} keyboardType="phone-pad" placeholder="For updates" />
-      <Input label="Date *" value={date} onChangeText={setDate} placeholder="YYYY-MM-DD" />
+      <ReservationDatePicker value={date} onChange={setDate} maxAdvanceDays={MAX_ADVANCE_DAYS} />
 
       <Text style={styles.fieldLabel}>Preferred Time *</Text>
       <View style={styles.timeGrid}>

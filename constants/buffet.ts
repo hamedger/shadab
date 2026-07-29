@@ -52,8 +52,8 @@ export const BUFFET_PRICING = {
   },
 }
 
+// Buffet is dinner-only.
 export const BUFFET_HOURS = {
-  lunch: { start: '11:00', end: '15:00' },
   dinner: { start: '17:00', end: '21:00' },
 }
 

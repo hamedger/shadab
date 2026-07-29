@@ -82,6 +82,7 @@ export async function createPendingReservation(
   const maxDate = new Date(today)
   maxDate.setDate(maxDate.getDate() + MAX_ADVANCE_DAYS)
   if (reservationDate < today) throw new Error('Date cannot be in the past')
+  if (reservationDate.getDay() === 0) throw new Error('The buffet is closed Sundays — please pick another date')
   if (reservationDate > maxDate) throw new Error(`Book up to ${MAX_ADVANCE_DAYS} days in advance`)
 
   const dailyCap = getReservationDailyCap(input.date)

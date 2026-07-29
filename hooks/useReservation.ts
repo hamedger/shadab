@@ -4,6 +4,9 @@ import { useSelectedLocation } from './useSelectedLocation'
 import { validateReservation, ReservationInput } from '../lib/services/reservationService'
 import { startReservationCheckout } from '../lib/services/reservationCheckout'
 import { redirectToCloverCheckout } from '../lib/services/cloverCheckout'
+import { auth } from '../lib/firebase'
+import { signInForGuestCheckout } from '../lib/guestAuth'
+import { ensureGuestProfile } from '../lib/guestProfile'
 
 export function useReservation() {
   const { firebaseUser, userProfile } = useAuthStore()
@@ -27,6 +30,17 @@ export function useReservation() {
 
       setLoading(true)
       try {
+        // Reservations don't require creating an account — sign in anonymously behind
+        // the scenes if the visitor isn't already authenticated.
+        if (!auth.currentUser) {
+          const cred = await signInForGuestCheckout(payload.name, payload.email)
+          await ensureGuestProfile(cred.user.uid, {
+            email: payload.email,
+            phone: payload.phone,
+            displayName: payload.name,
+          })
+        }
+
         const { href } = await startReservationCheckout({
           partySize: payload.partySize,
           date: payload.date,

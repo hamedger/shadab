@@ -39,9 +39,9 @@ describe('paid order email content', () => {
     const subject = buildOrderNotificationSubject(input)
     const body = buildOrderNotificationBody(input)
 
-    expect(subject).toBe('[Northville] New Order #WUKQ4X — Pickup — $4.35')
+    expect(subject).toBe('[Chicago] New Order #WUKQ4X — Pickup — $4.35')
     expect(body).toContain(`Order ID: ${orderId} (#WUKQ4X)`)
-    expect(body).toContain('New order at Northville')
+    expect(body).toContain('New order at Chicago')
     expect(body).toContain('Fulfillment: pickup')
     expect(body).toContain('Total: $4.35')
     expect(body).toContain('Scheduled: 2026-06-28 asap')
@@ -53,7 +53,6 @@ describe('paid order email content', () => {
 
   it('reflects delivery orders and multiple items', () => {
     const order = paidOrderDoc({
-      locationId: 'farmington-hills-mi',
       fulfillmentType: 'delivery',
       total: 544,
       notes: '',
@@ -67,7 +66,7 @@ describe('paid order email content', () => {
     const subject = buildOrderNotificationSubject(input)
     const body = buildOrderNotificationBody(input)
 
-    expect(subject).toContain('[Farmington Hills]')
+    expect(subject).toContain('[Chicago]')
     expect(subject).toContain('Delivery')
     expect(subject).toContain('$5.44')
     expect(body).toContain('- 1x French Fries — $4.99')

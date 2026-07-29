@@ -53,15 +53,26 @@ describe('buffetService', () => {
   })
 
   describe('computeBuffetStatus', () => {
-    it('reports open during weekday lunch with default config', () => {
+    it('reports closed at noon — buffet is dinner-only', () => {
       const mondayNoon = new Date('2026-06-08T12:00:00')
       const status = computeBuffetStatus({
         config: null,
         now: mondayNoon,
         timezone: RESTAURANT_TIMEZONE,
       })
+      expect(status.isOpen).toBe(false)
+      expect(status.currentSession).toBe(null)
+    })
+
+    it('reports open during weekday dinner hours with default config', () => {
+      const mondayEvening = new Date('2026-06-08T18:00:00')
+      const status = computeBuffetStatus({
+        config: null,
+        now: mondayEvening,
+        timezone: RESTAURANT_TIMEZONE,
+      })
       expect(status.isOpen).toBe(true)
-      expect(status.currentSession).toBe('lunch')
+      expect(status.currentSession).toBe('dinner')
       expect(status.currentPrice).toBe(2499)
     })
 
