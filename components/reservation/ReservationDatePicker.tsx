@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react'
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
+import { Modal as RNModal, View, Text, TouchableOpacity, StyleSheet } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import {
   addMonths,
@@ -16,7 +16,7 @@ import {
   startOfWeek,
   subMonths,
 } from 'date-fns'
-import { Modal } from '../ui/Modal'
+import { GRAND_OPENING_START } from '../../constants/buffet'
 import { colors, spacing, borderRadius, fonts } from '../../constants/theme'
 
 interface ReservationDatePickerProps {
@@ -39,6 +39,10 @@ function parseDateString(s: string): Date | null {
 export function ReservationDatePicker({ value, onChange, maxAdvanceDays = 30 }: ReservationDatePickerProps) {
   const [visible, setVisible] = useState(false)
   const today = useMemo(() => startOfDay(new Date()), [])
+  const bookingStart = useMemo(() => {
+    const grandOpening = parseDateString(GRAND_OPENING_START) ?? today
+    return isAfter(grandOpening, today) ? startOfDay(grandOpening) : today
+  }, [today])
   const maxDate = useMemo(() => {
     const d = new Date(today)
     d.setDate(d.getDate() + maxAdvanceDays)
@@ -46,7 +50,7 @@ export function ReservationDatePicker({ value, onChange, maxAdvanceDays = 30 }: 
   }, [today, maxAdvanceDays])
 
   const selected = parseDateString(value)
-  const [viewMonth, setViewMonth] = useState(() => selected ?? today)
+  const [viewMonth, setViewMonth] = useState(() => selected ?? bookingStart)
 
   const days = useMemo(() => {
     const monthStart = startOfMonth(viewMonth)
@@ -56,11 +60,11 @@ export function ReservationDatePicker({ value, onChange, maxAdvanceDays = 30 }: 
     return eachDayOfInterval({ start: gridStart, end: gridEnd })
   }, [viewMonth])
 
-  const canGoPrev = isAfter(startOfMonth(viewMonth), startOfMonth(today))
+  const canGoPrev = isAfter(startOfMonth(viewMonth), startOfMonth(bookingStart))
   const canGoNext = isBefore(startOfMonth(viewMonth), startOfMonth(maxDate))
 
   const openModal = () => {
-    setViewMonth(selected ?? today)
+    setViewMonth(selected ?? bookingStart)
     setVisible(true)
   }
 
@@ -79,63 +83,81 @@ export function ReservationDatePicker({ value, onChange, maxAdvanceDays = 30 }: 
         <Text style={[styles.fieldText, !selected && styles.fieldPlaceholder]}>{label}</Text>
       </TouchableOpacity>
 
-      <Modal visible={visible} onClose={() => setVisible(false)} title="Select a Date">
-        <View style={styles.monthRow}>
-          <TouchableOpacity
-            onPress={() => canGoPrev && setViewMonth((m) => subMonths(m, 1))}
-            disabled={!canGoPrev}
-            style={styles.navBtn}
-          >
-            <Ionicons name="chevron-back" size={20} color={canGoPrev ? colors.gold : colors.border} />
-          </TouchableOpacity>
-          <Text style={styles.monthLabel}>{format(viewMonth, 'MMMM yyyy')}</Text>
-          <TouchableOpacity
-            onPress={() => canGoNext && setViewMonth((m) => addMonths(m, 1))}
-            disabled={!canGoNext}
-            style={styles.navBtn}
-          >
-            <Ionicons name="chevron-forward" size={20} color={canGoNext ? colors.gold : colors.border} />
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.weekdayRow}>
-          {WEEKDAY_LABELS.map((w, i) => (
-            <Text key={i} style={styles.weekdayLabel}>{w}</Text>
-          ))}
-        </View>
-
-        <View style={styles.grid}>
-          {days.map((day) => {
-            const inMonth = isSameMonth(day, viewMonth)
-            const isSunday = day.getDay() === 0
-            const outOfRange = isBefore(day, today) || isAfter(day, maxDate)
-            const disabled = !inMonth || isSunday || outOfRange
-            const isSelected = selected ? isSameDay(day, selected) : false
-
-            return (
-              <TouchableOpacity
-                key={day.toISOString()}
-                style={[styles.day, isSelected && styles.daySelected]}
-                onPress={() => !disabled && handleSelect(day)}
-                disabled={disabled}
-              >
-                <Text
-                  style={[
-                    styles.dayText,
-                    !inMonth && styles.dayTextMuted,
-                    disabled && inMonth && styles.dayTextDisabled,
-                    isSelected && styles.dayTextSelected,
-                  ]}
-                >
-                  {format(day, 'd')}
-                </Text>
+      <RNModal visible={visible} transparent animationType="fade" onRequestClose={() => setVisible(false)}>
+        <TouchableOpacity
+          style={styles.backdrop}
+          activeOpacity={1}
+          onPress={() => setVisible(false)}
+        />
+        <View style={styles.centerWrap} pointerEvents="box-none">
+          <View style={styles.popup}>
+            <View style={styles.popupHeader}>
+              <Text style={styles.popupTitle}>Select a Date</Text>
+              <TouchableOpacity onPress={() => setVisible(false)} hitSlop={8}>
+                <Ionicons name="close" size={18} color={colors.whiteMuted} />
               </TouchableOpacity>
-            )
-          })}
-        </View>
+            </View>
 
-        <Text style={styles.hint}>Closed Sundays · book up to {maxAdvanceDays} days ahead</Text>
-      </Modal>
+            <View style={styles.monthRow}>
+              <TouchableOpacity
+                onPress={() => canGoPrev && setViewMonth((m) => subMonths(m, 1))}
+                disabled={!canGoPrev}
+                style={styles.navBtn}
+              >
+                <Ionicons name="chevron-back" size={18} color={canGoPrev ? colors.gold : colors.border} />
+              </TouchableOpacity>
+              <Text style={styles.monthLabel}>{format(viewMonth, 'MMMM yyyy')}</Text>
+              <TouchableOpacity
+                onPress={() => canGoNext && setViewMonth((m) => addMonths(m, 1))}
+                disabled={!canGoNext}
+                style={styles.navBtn}
+              >
+                <Ionicons name="chevron-forward" size={18} color={canGoNext ? colors.gold : colors.border} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.weekdayRow}>
+              {WEEKDAY_LABELS.map((w, i) => (
+                <Text key={i} style={styles.weekdayLabel}>{w}</Text>
+              ))}
+            </View>
+
+            <View style={styles.grid}>
+              {days.map((day) => {
+                const inMonth = isSameMonth(day, viewMonth)
+                const isSunday = day.getDay() === 0
+                const outOfRange = isBefore(day, bookingStart) || isAfter(day, maxDate)
+                const disabled = !inMonth || isSunday || outOfRange
+                const isSelected = selected ? isSameDay(day, selected) : false
+
+                return (
+                  <TouchableOpacity
+                    key={day.toISOString()}
+                    style={[styles.day, isSelected && styles.daySelected]}
+                    onPress={() => !disabled && handleSelect(day)}
+                    disabled={disabled}
+                  >
+                    <Text
+                      style={[
+                        styles.dayText,
+                        !inMonth && styles.dayTextMuted,
+                        disabled && inMonth && styles.dayTextDisabled,
+                        isSelected && styles.dayTextSelected,
+                      ]}
+                    >
+                      {format(day, 'd')}
+                    </Text>
+                  </TouchableOpacity>
+                )
+              })}
+            </View>
+
+            <Text style={styles.hint}>
+              Booking opens {format(bookingStart, 'MMM d')} · closed Sundays
+            </Text>
+          </View>
+        </View>
+      </RNModal>
     </>
   )
 }
@@ -168,17 +190,47 @@ const styles = StyleSheet.create({
     color: colors.whiteMuted,
     fontFamily: fonts.sans,
   },
+  backdrop: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+  },
+  centerWrap: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: spacing.lg,
+  },
+  popup: {
+    width: '100%',
+    maxWidth: 320,
+    backgroundColor: colors.backgroundCard,
+    borderRadius: borderRadius.xl,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.md,
+  },
+  popupHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.sm,
+  },
+  popupTitle: {
+    fontFamily: fonts.sansBold,
+    color: colors.white,
+    fontSize: 14,
+  },
   monthRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: spacing.md,
+    marginBottom: spacing.sm,
   },
   navBtn: { padding: spacing.xs },
   monthLabel: {
     fontFamily: fonts.serif,
     color: colors.white,
-    fontSize: 16,
+    fontSize: 15,
   },
   weekdayRow: {
     flexDirection: 'row',
@@ -189,7 +241,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontFamily: fonts.sansMedium,
     color: colors.whiteMuted,
-    fontSize: 11,
+    fontSize: 10,
   },
   grid: {
     flexDirection: 'row',
@@ -208,7 +260,7 @@ const styles = StyleSheet.create({
   dayText: {
     fontFamily: fonts.sansMedium,
     color: colors.white,
-    fontSize: 14,
+    fontSize: 13,
   },
   dayTextMuted: {
     color: colors.border,
@@ -224,8 +276,8 @@ const styles = StyleSheet.create({
   hint: {
     fontFamily: fonts.sans,
     color: colors.whiteMuted,
-    fontSize: 12,
+    fontSize: 11,
     textAlign: 'center',
-    marginTop: spacing.md,
+    marginTop: spacing.sm,
   },
 })

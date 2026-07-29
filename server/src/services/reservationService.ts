@@ -1,7 +1,12 @@
 import { FieldValue } from 'firebase-admin/firestore'
 import { db } from '../lib/firebase'
 import { CloverLineItem } from './cloverClient'
-import { getReservationDailyCap, getReservationFeeCents } from '../lib/reservationPricing'
+import {
+  GRAND_OPENING_START,
+  getReservationDailyCap,
+  getReservationFeeCents,
+  isGrandOpeningWindow,
+} from '../lib/reservationPricing'
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
 const MAX_ADVANCE_DAYS = 30
@@ -79,9 +84,15 @@ export async function createPendingReservation(
   const reservationDate = new Date(`${input.date}T12:00:00`)
   const today = new Date()
   today.setHours(0, 0, 0, 0)
+  const grandOpeningStartDate = new Date(`${GRAND_OPENING_START}T12:00:00`)
+  const bookingStart = grandOpeningStartDate > today ? grandOpeningStartDate : today
   const maxDate = new Date(today)
   maxDate.setDate(maxDate.getDate() + MAX_ADVANCE_DAYS)
-  if (reservationDate < today) throw new Error('Date cannot be in the past')
+  if (reservationDate < bookingStart) {
+    throw new Error(
+      bookingStart > today ? `Table reservations open ${GRAND_OPENING_START}` : 'Date cannot be in the past',
+    )
+  }
   if (reservationDate.getDay() === 0) throw new Error('The buffet is closed Sundays — please pick another date')
   if (reservationDate > maxDate) throw new Error(`Book up to ${MAX_ADVANCE_DAYS} days in advance`)
 
@@ -93,7 +104,8 @@ export async function createPendingReservation(
     }
   }
 
-  const feeCents = getReservationFeeCents(input.date)
+  const feeCents = getReservationFeeCents(input.date, input.partySize)
+  const grandOpening = isGrandOpeningWindow(input.date)
 
   const reservationRef = db.collection('reservations').doc()
 
@@ -118,14 +130,23 @@ export async function createPendingReservation(
     updatedAt: FieldValue.serverTimestamp(),
   })
 
-  const lineItems: CloverLineItem[] = [
-    {
-      name: `Table Reservation — ${input.partySize} guest${input.partySize === 1 ? '' : 's'}`,
-      price: feeCents,
-      unitQty: 1,
-      note: `${input.date} at ${input.time}`,
-    },
-  ]
+  const lineItems: CloverLineItem[] = grandOpening
+    ? [
+        {
+          name: 'Grand Opening Buffet Reservation (per guest)',
+          price: Math.round(feeCents / input.partySize),
+          unitQty: input.partySize,
+          note: `${input.date} at ${input.time}`,
+        },
+      ]
+    : [
+        {
+          name: `Table Reservation — ${input.partySize} guest${input.partySize === 1 ? '' : 's'}`,
+          price: feeCents,
+          unitQty: 1,
+          note: `${input.date} at ${input.time}`,
+        },
+      ]
 
   const [firstName, ...rest] = input.customerName.trim().split(/\s+/)
   const lastName = rest.join(' ')

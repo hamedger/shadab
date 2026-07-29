@@ -13,9 +13,9 @@ import { validateReservation } from '../lib/services/reservationService'
 import { validateCatering } from '../lib/services/cateringService'
 
 describe('reservationService validation', () => {
-  const tomorrow = new Date()
-  tomorrow.setDate(tomorrow.getDate() + 1)
-  const futureDate = tomorrow.toISOString().slice(0, 10)
+  // Reservations open with the grand opening (2026-08-25, a Tuesday) — use a date
+  // inside that window so this fixture stays valid regardless of when the suite runs.
+  const futureDate = '2026-08-26'
 
   const validInput = {
     userId: 'guest',

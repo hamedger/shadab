@@ -1,4 +1,4 @@
-import { BUFFET_HOURS } from '../../constants/buffet'
+import { BUFFET_HOURS, GRAND_OPENING_START } from '../../constants/buffet'
 
 export interface ReservationInput {
   userId: string
@@ -37,11 +37,20 @@ export function validateReservation(input: ReservationInput): ReservationValidat
     const reservationDate = new Date(`${input.date}T12:00:00`)
     const today = new Date()
     today.setHours(0, 0, 0, 0)
+    const grandOpening = new Date(`${GRAND_OPENING_START}T12:00:00`)
+    const bookingStart = grandOpening > today ? grandOpening : today
     const maxDate = new Date(today)
     maxDate.setDate(maxDate.getDate() + MAX_ADVANCE_DAYS)
 
-    if (reservationDate < today) errors.push('Date cannot be in the past')
-    else if (reservationDate.getDay() === 0) errors.push('The buffet is closed Sundays — please pick another date')
+    if (reservationDate < bookingStart) {
+      errors.push(
+        bookingStart > today
+          ? `Table reservations open ${GRAND_OPENING_START}`
+          : 'Date cannot be in the past',
+      )
+    } else if (reservationDate.getDay() === 0) {
+      errors.push('The buffet is closed Sundays — please pick another date')
+    }
     if (reservationDate > maxDate) errors.push(`Book up to ${MAX_ADVANCE_DAYS} days in advance`)
   }
   if (!input.time.trim()) errors.push('Time is required')

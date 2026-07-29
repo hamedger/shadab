@@ -6,7 +6,7 @@ import { ReservationDatePicker } from '../components/reservation/ReservationDate
 import { colors, spacing, borderRadius, fonts } from '../constants/theme'
 import { useReservation } from '../hooks/useReservation'
 import { MAX_ADVANCE_DAYS, RESERVATION_TIME_SLOTS } from '../lib/services/reservationService'
-import { getReservationFeeCents, isGrandOpeningWindow } from '../constants/reservation'
+import { GRAND_OPENING_START, getReservationFeeCents, isGrandOpeningWindow } from '../constants/reservation'
 
 const OCCASIONS = ['Birthday', 'Anniversary', 'Business Dinner', 'Date Night', 'Family Gathering', 'Other']
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
@@ -33,13 +33,15 @@ export default function ReservationScreen() {
     if (defaultPhone && !phone) setPhone(defaultPhone)
   }, [defaultName, defaultEmail, defaultPhone])
 
+  const partySizeNum = Math.max(1, Math.round(Number(partySize) || 1))
+
   const fee = useMemo(() => {
-    if (DATE_RE.test(date)) return getReservationFeeCents(date)
-    return isGrandOpeningWindow() ? getReservationFeeCents(date || '') : null
-  }, [date])
+    if (DATE_RE.test(date)) return getReservationFeeCents(date, partySizeNum)
+    return isGrandOpeningWindow() ? getReservationFeeCents(GRAND_OPENING_START, partySizeNum) : null
+  }, [date, partySizeNum])
 
   const handleSubmit = async () => {
-    const size = Math.max(1, Math.round(Number(partySize) || 1))
+    const size = partySizeNum
     try {
       await submit({ name, email, phone, partySize: size, date, time, occasion, specialRequests: requests })
       // On success the hook redirects to Clover Hosted Checkout — nothing left to do here.
@@ -57,16 +59,14 @@ export default function ReservationScreen() {
 
       <View style={styles.noticeBox}>
         <Text style={styles.noticeTitle}>
-          {DATE_RE.test(date)
-            ? isGrandOpeningWindow(date)
-              ? 'Grand Opening Week'
-              : 'Reservation Fee'
-            : 'Reservation Fee'}
+          {DATE_RE.test(date) && isGrandOpeningWindow(date) ? 'Grand Opening Week' : 'Reservation Fee'}
         </Text>
         <Text style={styles.noticeText}>
           {fee != null
-            ? `A ${formatCents(fee)} reservation fee applies, paid securely by Clover after you submit.`
-            : 'Reservation fee: $9.99 through Aug 28 (grand opening week), $15.00 after — paid securely by Clover after you submit.'}
+            ? DATE_RE.test(date) && isGrandOpeningWindow(date)
+              ? `$9.99 per guest × ${partySizeNum} = ${formatCents(fee)}, paid securely by Clover after you submit.`
+              : `A flat ${formatCents(fee)} reservation fee applies per table, paid securely by Clover after you submit.`
+            : 'Reservation fee: $9.99 per guest, August 25–28 (grand opening week); a flat $15 per table after — paid securely by Clover after you submit.'}
         </Text>
       </View>
 
