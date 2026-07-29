@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { Platform, Text, View, useWindowDimensions } from 'react-native'
 import { TabHomeIcon } from '../../components/navigation/TabHomeIcon'
 import { TopNavBar } from '../../components/navigation/TopNavBar'
+import { HalalBadge } from '../../components/brand/HalalBadge'
 import { blurActiveElementOnWeb } from '../../lib/a11y'
 import { colors, fonts, spacing } from '../../constants/theme'
 import { useCartStore } from '../../store/cartStore'
@@ -55,10 +56,11 @@ export default function TabLayout() {
             }
           : {
               headerLeft: () => (
-                <View style={{ paddingLeft: spacing.md }}>
+                <View style={{ paddingLeft: spacing.md, gap: 3 }}>
                   <Text style={{ fontFamily: fonts.serif, fontSize: 20, color: colors.gold }}>
                     Shadab
                   </Text>
+                  <HalalBadge size="sm" showPercent />
                 </View>
               ),
               headerRight: () => <HeaderPhones />,

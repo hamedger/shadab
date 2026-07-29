@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
 import { Link, useRouter, usePathname } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { HeaderPhones } from './HeaderPhones'
+import { HalalBadge } from '../brand/HalalBadge'
 import { useCartStore } from '../../store/cartStore'
 import { CartBadge } from '../cart/CartBadge'
 import { colors, fonts, spacing } from '../../constants/theme'
@@ -30,6 +31,7 @@ export function TopNavBar() {
     <View style={styles.bar}>
       <View style={styles.left}>
         <Text style={styles.wordmark}>Shadab</Text>
+        <HalalBadge size="sm" showPercent />
       </View>
 
       <View style={styles.center}>
@@ -91,8 +93,8 @@ const styles = StyleSheet.create({
     height: 84,
   },
   left: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
+    gap: 3,
   },
   wordmark: {
     fontFamily: fonts.serif,
