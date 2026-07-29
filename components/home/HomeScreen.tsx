@@ -1,13 +1,12 @@
 import React from 'react'
 import { ScrollView, View, StyleSheet, useWindowDimensions } from 'react-native'
 import { HalalBadge } from '../brand/HalalBadge'
-import { HeroSection } from './HeroSection'
-import { BuffetBanner } from './BuffetBanner'
-import { StatsStrip } from './StatsStrip'
+import { BuffetHero } from './BuffetHero'
 import { FeaturedDishes } from './FeaturedDishes'
 import { ConversionSection } from './ConversionSection'
 import { OrynPromoBlock } from './OrynPromoBlock'
 import { DemoBanner } from '../shared/DemoBanner'
+import { GrandOpeningBanner } from '../shared/GrandOpeningBanner'
 import { colors, spacing } from '../../constants/theme'
 
 const WIDE_BREAKPOINT = 720
@@ -24,9 +23,9 @@ export function HomeScreen() {
         <HalalBadge size={isWide ? 'xl' : 'lg'} showPercent />
       </View>
 
-      <HeroSection />
-      <BuffetBanner />
-      <StatsStrip />
+      <GrandOpeningBanner />
+
+      <BuffetHero />
       <FeaturedDishes />
       <OrynPromoBlock />
       <ConversionSection />

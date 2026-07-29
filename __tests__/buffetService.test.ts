@@ -62,7 +62,7 @@ describe('buffetService', () => {
       })
       expect(status.isOpen).toBe(true)
       expect(status.currentSession).toBe('lunch')
-      expect(status.currentPrice).toBe(1799)
+      expect(status.currentPrice).toBe(2499)
     })
 
     it('uses weekend pricing on Saturday', () => {

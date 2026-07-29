@@ -80,7 +80,7 @@ export function redirectToCloverCheckout(href: string) {
   throw new Error('Clover checkout redirect is only supported on web.')
 }
 
-const CHECKOUT_CONTEXT_KEY = 'deccan_checkout_context'
+const CHECKOUT_CONTEXT_KEY = 'shadab_checkout_context'
 
 export interface CheckoutContext {
   fulfillment: string

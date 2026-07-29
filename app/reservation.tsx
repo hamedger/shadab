@@ -1,28 +1,26 @@
-import React, { useState, useEffect } from 'react'
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert } from 'react-native'
-import { useRouter } from 'expo-router'
+import React, { useState, useEffect, useMemo } from 'react'
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native'
 import { Input } from '../components/ui/Input'
 import { Button } from '../components/ui/Button'
 import { colors, spacing, borderRadius, fonts } from '../constants/theme'
 import { useReservation } from '../hooks/useReservation'
-import {
-  MIN_RESERVATION_PARTY_SIZE,
-  RESERVATION_TIME_SLOTS,
-} from '../lib/services/reservationService'
+import { RESERVATION_TIME_SLOTS } from '../lib/services/reservationService'
+import { getReservationFeeCents, isGrandOpeningWindow } from '../constants/reservation'
 
-const PARTY_SIZES = [
-  8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, '21+',
-] as const
 const OCCASIONS = ['Birthday', 'Anniversary', 'Business Dinner', 'Date Night', 'Family Gathering', 'Other']
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
+
+function formatCents(cents: number) {
+  return `$${(cents / 100).toFixed(2)}`
+}
 
 export default function ReservationScreen() {
-  const router = useRouter()
   const { submit, loading, error, defaultName, defaultEmail, defaultPhone } = useReservation()
 
   const [name, setName] = useState(defaultName)
   const [email, setEmail] = useState(defaultEmail)
   const [phone, setPhone] = useState(defaultPhone)
-  const [partySize, setPartySize] = useState(MIN_RESERVATION_PARTY_SIZE)
+  const [partySize, setPartySize] = useState('2')
   const [date, setDate] = useState('')
   const [time, setTime] = useState('')
   const [occasion, setOccasion] = useState('')
@@ -34,22 +32,16 @@ export default function ReservationScreen() {
     if (defaultPhone && !phone) setPhone(defaultPhone)
   }, [defaultName, defaultEmail, defaultPhone])
 
-  const handleSubmit = async () => {
-    if (partySize > 20) {
-      Alert.alert('Large Party', 'For parties over 20, please use our Catering inquiry form.', [
-        { text: 'Go to Catering', onPress: () => router.push('/catering' as never) },
-        { text: 'Cancel', style: 'cancel' },
-      ])
-      return
-    }
+  const fee = useMemo(() => {
+    if (DATE_RE.test(date)) return getReservationFeeCents(date)
+    return isGrandOpeningWindow() ? getReservationFeeCents(date || '') : null
+  }, [date])
 
+  const handleSubmit = async () => {
+    const size = Math.max(1, Math.round(Number(partySize) || 1))
     try {
-      await submit({ name, email, phone, partySize, date, time, occasion, specialRequests: requests })
-      Alert.alert(
-        'Reservation Submitted',
-        "We'll confirm your reservation within 30 minutes. Check your email for updates.",
-        [{ text: 'OK', onPress: () => router.back() }],
-      )
+      await submit({ name, email, phone, partySize: size, date, time, occasion, specialRequests: requests })
+      // On success the hook redirects to Clover Hosted Checkout — nothing left to do here.
     } catch {
       // error surfaced via hook
     }
@@ -61,10 +53,17 @@ export default function ReservationScreen() {
       <Text style={styles.subtitle}>Book up to 30 days in advance · 15-minute seating slots</Text>
 
       <View style={styles.noticeBox}>
-        <Text style={styles.noticeTitle}>Parties of {MIN_RESERVATION_PARTY_SIZE} or more</Text>
+        <Text style={styles.noticeTitle}>
+          {DATE_RE.test(date)
+            ? isGrandOpeningWindow(date)
+              ? 'Grand Opening Week'
+              : 'Reservation Fee'
+            : 'Reservation Fee'}
+        </Text>
         <Text style={styles.noticeText}>
-          Table reservations are available for groups of {MIN_RESERVATION_PARTY_SIZE} guests and up.
-          For smaller parties, walk in or order online. For parties over 20, use our catering form.
+          {fee != null
+            ? `A ${formatCents(fee)} reservation fee applies, paid securely by Clover after you submit.`
+            : 'Reservation fee: $9.99 through Aug 28 (grand opening week), $15.00 after — paid securely by Clover after you submit.'}
         </Text>
       </View>
 
@@ -94,24 +93,13 @@ export default function ReservationScreen() {
         ))}
       </View>
 
-      <Text style={styles.fieldLabel}>Party Size * (minimum {MIN_RESERVATION_PARTY_SIZE})</Text>
-      <View style={styles.sizeGrid}>
-        {PARTY_SIZES.map((s) => {
-          const value = typeof s === 'number' ? s : 21
-          const selected = partySize === value
-          return (
-            <TouchableOpacity
-              key={String(s)}
-              style={[styles.sizeChip, selected && styles.sizeChipActive]}
-              onPress={() => setPartySize(value)}
-              accessibilityRole="button"
-              accessibilityState={{ selected }}
-            >
-              <Text style={[styles.sizeText, selected && styles.sizeTextActive]}>{s}</Text>
-            </TouchableOpacity>
-          )
-        })}
-      </View>
+      <Input
+        label="Party Size *"
+        value={partySize}
+        onChangeText={setPartySize}
+        keyboardType="number-pad"
+        placeholder="Number of guests"
+      />
 
       <Text style={styles.fieldLabel}>Occasion</Text>
       <View style={styles.occasionGrid}>
@@ -138,7 +126,7 @@ export default function ReservationScreen() {
       <Text style={styles.note}>24-hour cancellation policy applies</Text>
 
       <Button
-        label="Submit Reservation"
+        label={fee != null ? `Continue to Payment · ${formatCents(fee)}` : 'Continue to Payment'}
         onPress={handleSubmit}
         loading={loading}
         fullWidth
@@ -165,7 +153,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   noticeBox: {
-    backgroundColor: 'rgba(212,175,55,0.1)',
+    backgroundColor: 'rgba(201,162,75,0.1)',
     borderWidth: 1,
     borderColor: colors.goldDark,
     borderRadius: borderRadius.md,
@@ -208,20 +196,6 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     backgroundColor: colors.backgroundCard,
   },
-  sizeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginBottom: spacing.md },
-  sizeChip: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.backgroundCard,
-  },
-  sizeChipActive: { backgroundColor: colors.gold, borderColor: colors.gold },
-  sizeText: { fontFamily: fonts.sansBold, color: colors.whiteMuted },
-  sizeTextActive: { color: colors.background },
   occasionGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginBottom: spacing.md },
   occasionChip: {
     paddingHorizontal: spacing.md,
@@ -231,7 +205,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     backgroundColor: colors.backgroundCard,
   },
-  chipActive: { backgroundColor: 'rgba(212,175,55,0.15)', borderColor: colors.gold },
+  chipActive: { backgroundColor: 'rgba(201,162,75,0.15)', borderColor: colors.gold },
   chipText: { fontFamily: fonts.sans, color: colors.whiteMuted, fontSize: 12 },
   chipTextActive: { fontFamily: fonts.sansBold, color: colors.gold },
   note: {

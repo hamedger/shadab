@@ -7,7 +7,9 @@ import { formatLocationShort } from '../../lib/locationUtils'
 import { HalalBadge } from '../../components/brand/HalalBadge'
 import { PageIntro } from '../../components/layout/PageIntro'
 import { BuffetMenuBySection } from '../../components/buffet/BuffetMenuBySection'
+import { GrandOpeningBanner } from '../../components/shared/GrandOpeningBanner'
 import { groupBuffetDishesForCustomer } from '../../lib/buffetLayout'
+import { isGrandOpeningWindow, STUDENT_BUFFET_DISCOUNT_PERCENT } from '../../constants/buffet'
 import { colors, spacing, borderRadius, fonts } from '../../constants/theme'
 
 function formatCents(cents: number) {
@@ -32,7 +34,6 @@ export default function BuffetScreen() {
     isOpen,
     currentSession,
     weekdayPrice,
-    weekendPrice,
     nextSessionLabel,
     countdownMinutes,
     todaysDishes,
@@ -70,23 +71,14 @@ export default function BuffetScreen() {
         {specialNote ? <Text style={styles.specialNote}>{specialNote}</Text> : null}
       </View>
 
-      <View style={styles.pricingRow}>
-        <View style={styles.priceCard}>
-          <Text style={styles.priceEyebrow}>Weekday</Text>
-          <Text style={styles.priceDays}>Monday – Friday</Text>
-          <Text style={styles.priceValue}>{formatCents(weekdayPrice)}</Text>
-          <Text style={styles.priceUnit}>per guest</Text>
-          <Text style={styles.priceHours}>11 AM – 3 PM · 5 PM – 9 PM</Text>
-          <TouchableOpacity style={styles.outlineBtn} onPress={() => router.push('/reservation' as never)}>
-            <Text style={styles.outlineBtnText}>Reserve</Text>
-          </TouchableOpacity>
-        </View>
+      <GrandOpeningBanner />
 
-        <View style={[styles.priceCard, styles.priceCardFeatured]}>
-          <Text style={styles.featuredTag}>Popular</Text>
-          <Text style={styles.priceEyebrow}>Weekend</Text>
-          <Text style={styles.priceDays}>Saturday</Text>
-          <Text style={[styles.priceValue, styles.priceValueGold]}>{formatCents(weekendPrice)}</Text>
+      <View style={styles.pricingRow}>
+        <View style={[styles.priceCard, styles.priceCardFeatured, styles.priceCardWide]}>
+          {isGrandOpeningWindow() ? <Text style={styles.featuredTag}>Grand Opening Special</Text> : null}
+          <Text style={styles.priceEyebrow}>Everyday Price</Text>
+          <Text style={styles.priceDays}>Monday – Saturday</Text>
+          <Text style={[styles.priceValue, styles.priceValueGold]}>{formatCents(weekdayPrice)}</Text>
           <Text style={styles.priceUnit}>per guest</Text>
           <Text style={styles.priceHours}>11 AM – 3 PM · 5 PM – 9 PM</Text>
           <TouchableOpacity style={styles.goldBtn} onPress={() => router.push('/reservation' as never)}>
@@ -98,6 +90,7 @@ export default function BuffetScreen() {
       <View style={styles.noteBlock}>
         <Text style={styles.noteLine}>Children under 5 dine free</Text>
         <Text style={styles.noteLine}>Children 5–10 receive half price</Text>
+        <Text style={styles.noteLine}>Students save {STUDENT_BUFFET_DISCOUNT_PERCENT}% with valid ID</Text>
       </View>
 
       <View style={styles.section}>
@@ -164,6 +157,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   priceCardFeatured: { borderColor: colors.borderStrong },
+  priceCardWide: { flex: 1, maxWidth: 320, alignSelf: 'center' },
   featuredTag: {
     fontFamily: fonts.sansMedium,
     color: colors.gold,

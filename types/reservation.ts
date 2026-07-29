@@ -15,6 +15,10 @@ export interface Reservation {
   specialRequests?: string
   locationId: string
   status: ReservationStatus
+  feeCents?: number
+  cloverMerchantId?: string
+  cloverCheckoutSessionId?: string
+  cloverPaymentId?: string
   createdAt?: Timestamp | null
   updatedAt?: Timestamp | null
 }

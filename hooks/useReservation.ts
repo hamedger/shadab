@@ -1,11 +1,9 @@
 import { useState, useCallback } from 'react'
 import { useAuthStore } from '../store/authStore'
 import { useSelectedLocation } from './useSelectedLocation'
-import {
-  submitReservation,
-  validateReservation,
-  ReservationInput,
-} from '../lib/services/reservationService'
+import { validateReservation, ReservationInput } from '../lib/services/reservationService'
+import { startReservationCheckout } from '../lib/services/reservationCheckout'
+import { redirectToCloverCheckout } from '../lib/services/cloverCheckout'
 
 export function useReservation() {
   const { firebaseUser, userProfile } = useAuthStore()
@@ -29,10 +27,20 @@ export function useReservation() {
 
       setLoading(true)
       try {
-        const id = await submitReservation({ ...payload, locationId })
-        return id
+        const { href } = await startReservationCheckout({
+          partySize: payload.partySize,
+          date: payload.date,
+          time: payload.time,
+          occasion: payload.occasion,
+          specialRequests: payload.specialRequests,
+          locationId: locationId ?? payload.locationId ?? '',
+          customerName: payload.name,
+          customerPhone: payload.phone,
+          customerEmail: payload.email,
+        })
+        redirectToCloverCheckout(href)
       } catch (e) {
-        const message = e instanceof Error ? e.message : 'Failed to submit reservation'
+        const message = e instanceof Error ? e.message : 'Failed to start reservation checkout'
         setError(message)
         throw e
       } finally {

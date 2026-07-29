@@ -55,7 +55,7 @@ export function Button({
 
 const styles = StyleSheet.create({
   base: {
-    borderRadius: borderRadius.md,
+    borderRadius: borderRadius.full,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
@@ -65,7 +65,7 @@ const styles = StyleSheet.create({
   },
   secondary: {
     backgroundColor: 'transparent',
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: colors.gold,
   },
   ghost: {
@@ -74,9 +74,9 @@ const styles = StyleSheet.create({
   danger: {
     backgroundColor: colors.error,
   },
-  size_sm: { paddingHorizontal: spacing.md, paddingVertical: spacing.xs, borderRadius: borderRadius.sm },
-  size_md: { paddingHorizontal: spacing.lg, paddingVertical: spacing.sm + 2 },
-  size_lg: { paddingHorizontal: spacing.xl, paddingVertical: spacing.md },
+  size_sm: { paddingHorizontal: spacing.md + 2, paddingVertical: spacing.xs },
+  size_md: { paddingHorizontal: spacing.lg + 4, paddingVertical: spacing.sm + 2 },
+  size_lg: { paddingHorizontal: spacing.xl + 4, paddingVertical: spacing.md },
   fullWidth: { alignSelf: 'stretch' },
   disabled: { opacity: 0.4 },
   label: { fontWeight: '700', letterSpacing: 0.5 },

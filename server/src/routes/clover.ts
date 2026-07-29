@@ -10,6 +10,10 @@ import {
   markOrderDeclinedByCheckoutSession,
   markOrderPaidByCheckoutSession,
 } from '../services/orderService'
+import {
+  markReservationDeclinedByCheckoutSession,
+  markReservationPaidByCheckoutSession,
+} from '../services/reservationService'
 import { parseCloverWebhook, verifyCloverSignatureWithAnySecret } from '../services/cloverWebhook'
 
 export const cloverRouter = Router()
@@ -167,9 +171,15 @@ cloverRouter.post('/webhook', async (req, res) => {
     }
 
     if (event.status === 'APPROVED') {
-      await markOrderPaidByCheckoutSession(event.checkoutSessionId, event.paymentId)
+      const orderId = await markOrderPaidByCheckoutSession(event.checkoutSessionId, event.paymentId)
+      if (!orderId) {
+        await markReservationPaidByCheckoutSession(event.checkoutSessionId, event.paymentId)
+      }
     } else if (event.status === 'DECLINED') {
-      await markOrderDeclinedByCheckoutSession(event.checkoutSessionId)
+      const orderId = await markOrderDeclinedByCheckoutSession(event.checkoutSessionId)
+      if (!orderId) {
+        await markReservationDeclinedByCheckoutSession(event.checkoutSessionId)
+      }
     }
 
     res.sendStatus(200)

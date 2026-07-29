@@ -1,7 +1,3 @@
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
-import { db, isFirebaseConfigured } from '../firebase'
-import { DEFAULT_LOCATION_ID } from '../../constants/config'
-
 export interface ReservationInput {
   userId: string
   name: string
@@ -23,8 +19,7 @@ export interface ReservationValidationResult {
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
 const MAX_ADVANCE_DAYS = 30
-export const MIN_RESERVATION_PARTY_SIZE = 8
-const MAX_PARTY_SIZE = 20
+export const MIN_RESERVATION_PARTY_SIZE = 1
 
 export function validateReservation(input: ReservationInput): ReservationValidationResult {
   const errors: string[] = []
@@ -48,10 +43,7 @@ export function validateReservation(input: ReservationInput): ReservationValidat
   }
   if (!input.time.trim()) errors.push('Time is required')
   if (input.partySize < MIN_RESERVATION_PARTY_SIZE) {
-    errors.push(`Table reservations require a minimum party of ${MIN_RESERVATION_PARTY_SIZE}`)
-  }
-  if (input.partySize > MAX_PARTY_SIZE) {
-    errors.push(`For parties over ${MAX_PARTY_SIZE}, use the catering inquiry form`)
+    errors.push('Party size must be at least 1')
   }
 
   return { valid: errors.length === 0, errors }
@@ -62,32 +54,3 @@ export const RESERVATION_TIME_SLOTS = [
   '5:00 PM', '5:30 PM', '6:00 PM', '6:30 PM', '7:00 PM',
   '7:30 PM', '8:00 PM', '8:30 PM', '9:00 PM',
 ] as const
-
-export async function submitReservation(input: ReservationInput): Promise<string> {
-  const validation = validateReservation(input)
-  if (!validation.valid) {
-    throw new Error(validation.errors[0])
-  }
-
-  if (!isFirebaseConfigured) {
-    await new Promise((r) => setTimeout(r, 600))
-    return `demo-reservation-${Date.now()}`
-  }
-
-  const docRef = await addDoc(collection(db, 'reservations'), {
-    userId: input.userId,
-    name: input.name.trim(),
-    email: input.email.trim().toLowerCase(),
-    phone: input.phone.trim(),
-    partySize: input.partySize,
-    date: input.date.trim(),
-    time: input.time.trim(),
-    occasion: input.occasion?.trim() ?? '',
-    specialRequests: input.specialRequests?.trim() ?? '',
-    locationId: input.locationId ?? DEFAULT_LOCATION_ID,
-    status: 'pending',
-    createdAt: serverTimestamp(),
-  })
-
-  return docRef.id
-}

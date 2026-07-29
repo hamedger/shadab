@@ -81,7 +81,8 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // Reservations — public create with required fields, admin manage
+    // Reservations — created server-side only (paid via Clover checkout, admin SDK bypasses these
+    // rules); this create rule is a fallback safety net, not the primary write path.
     match /reservations/{reservationId} {
       allow create: if request.resource.data.keys().hasAll([
           'name', 'email', 'phone', 'partySize', 'date', 'time', 'status', 'locationId'
@@ -90,8 +91,7 @@ service cloud.firestore {
         && request.resource.data.email is string
         && request.resource.data.phone is string
         && request.resource.data.partySize is int
-        && request.resource.data.partySize >= 8
-        && request.resource.data.partySize <= 20
+        && request.resource.data.partySize >= 1
         && request.resource.data.status == 'pending';
       allow read, update: if isAdmin()
         || (request.auth != null && resource.data.userId == request.auth.uid);

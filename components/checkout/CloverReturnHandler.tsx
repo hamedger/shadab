@@ -7,6 +7,7 @@ import {
   clearCheckoutContext,
   confirmCloverOrderAfterRedirect,
 } from '../../lib/services/cloverCheckout'
+import { confirmCloverReservationAfterRedirect } from '../../lib/services/reservationCheckout'
 import { colors, spacing, borderRadius, fonts } from '../../constants/theme'
 
 function formatOrderShortId(orderId: string): string {
@@ -37,12 +38,25 @@ export function CloverReturnHandler() {
     const orderIdParam = params.orderId?.trim()
 
     void (async () => {
-      let confirmedOrderId = orderIdParam ?? ''
+      let confirmedOrderId = ''
+      let confirmedReservation = false
       try {
         const result = await confirmCloverOrderAfterRedirect(checkoutSessionId, orderIdParam)
         if (result?.orderId) confirmedOrderId = result.orderId
       } catch (error) {
-        console.warn('[CloverReturn] confirmCloverOrder failed — webhook may confirm later', error)
+        console.warn('[CloverReturn] confirmCloverOrder failed — trying reservation next', error)
+      }
+
+      if (!confirmedOrderId) {
+        try {
+          const reservationResult = await confirmCloverReservationAfterRedirect(
+            checkoutSessionId,
+            orderIdParam,
+          )
+          if (reservationResult?.reservationId) confirmedReservation = true
+        } catch (error) {
+          console.warn('[CloverReturn] confirmCloverReservation failed — webhook may confirm later', error)
+        }
       }
 
       clearCart()
@@ -50,6 +64,8 @@ export function CloverReturnHandler() {
 
       if (confirmedOrderId) {
         setMessage(`Payment confirmed! Order #${formatOrderShortId(confirmedOrderId)}`)
+      } else if (confirmedReservation) {
+        setMessage('Payment confirmed! Your table reservation is booked.')
       } else {
         setMessage('Payment confirmed!')
       }

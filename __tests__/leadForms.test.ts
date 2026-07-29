@@ -13,13 +13,17 @@ import { validateReservation } from '../lib/services/reservationService'
 import { validateCatering } from '../lib/services/cateringService'
 
 describe('reservationService validation', () => {
+  const tomorrow = new Date()
+  tomorrow.setDate(tomorrow.getDate() + 1)
+  const futureDate = tomorrow.toISOString().slice(0, 10)
+
   const validInput = {
     userId: 'guest',
     name: 'Jane Doe',
     email: 'jane@example.com',
     phone: '2485551234',
-    partySize: 8,
-    date: '2026-07-15',
+    partySize: 2,
+    date: futureDate,
     time: '7:00 PM',
   }
 
@@ -35,16 +39,15 @@ describe('reservationService validation', () => {
     expect(result.errors[0]).toMatch(/email/i)
   })
 
-  it('rejects party size under 8', () => {
-    const result = validateReservation({ ...validInput, partySize: 4 })
+  it('rejects a party size under 1', () => {
+    const result = validateReservation({ ...validInput, partySize: 0 })
     expect(result.valid).toBe(false)
-    expect(result.errors[0]).toMatch(/minimum party of 8/i)
+    expect(result.errors[0]).toMatch(/party size/i)
   })
 
-  it('rejects party size over 20', () => {
+  it('has no upper limit on party size', () => {
     const result = validateReservation({ ...validInput, partySize: 25 })
-    expect(result.valid).toBe(false)
-    expect(result.errors[0]).toMatch(/catering/i)
+    expect(result.valid).toBe(true)
   })
 })
 

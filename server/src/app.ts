@@ -3,6 +3,7 @@ import express from 'express'
 import { config } from './config'
 import { healthRouter } from './routes/health'
 import { cloverRouter } from './routes/clover'
+import { reservationRouter } from './routes/reservation'
 
 export function createApp() {
   const app = express()
@@ -40,6 +41,7 @@ export function createApp() {
 
   app.use(healthRouter)
   app.use('/api/clover', cloverRouter)
+  app.use('/api/reservations', reservationRouter)
 
   app.use((error: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
     const message = error instanceof Error ? error.message : 'Unexpected server error'

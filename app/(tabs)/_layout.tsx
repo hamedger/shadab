@@ -1,9 +1,9 @@
 import React from 'react'
 import { Tabs } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
-import { Platform, View, useWindowDimensions } from 'react-native'
-import { Logo } from '../../components/brand/Logo'
+import { Platform, Text, View, useWindowDimensions } from 'react-native'
 import { TabHomeIcon } from '../../components/navigation/TabHomeIcon'
+import { TopNavBar } from '../../components/navigation/TopNavBar'
 import { blurActiveElementOnWeb } from '../../lib/a11y'
 import { colors, fonts, spacing } from '../../constants/theme'
 import { useCartStore } from '../../store/cartStore'
@@ -11,11 +11,15 @@ import { CartBadge } from '../../components/cart/CartBadge'
 import { LocationGate } from '../../components/location/LocationGate'
 import { HeaderPhones } from '../../components/navigation/HeaderPhones'
 
+/** Below this width, web falls back to the bottom tab bar (no room for a full top nav). */
+const WIDE_WEB_NAV_BREAKPOINT = 760
+
 export default function TabLayout() {
   const itemCount = useCartStore((s) => s.itemCount())
   const { width } = useWindowDimensions()
   const logoHeight =
     Platform.OS === 'web' ? Math.min(76, Math.max(60, Math.round(width * 0.05) + 4)) : 56
+  const isWideWeb = Platform.OS === 'web' && width >= WIDE_WEB_NAV_BREAKPOINT
 
   return (
     <LocationGate>
@@ -27,28 +31,38 @@ export default function TabLayout() {
         },
       }}
       screenOptions={{
-        tabBarStyle: {
-          backgroundColor: colors.background,
-          borderTopColor: colors.border,
-          borderTopWidth: 1,
-          height: Platform.OS === 'ios' ? 80 : 60,
-          paddingBottom: Platform.OS === 'ios' ? 20 : 8,
-        },
+        tabBarStyle: isWideWeb
+          ? { display: 'none' }
+          : {
+              backgroundColor: colors.background,
+              borderTopColor: colors.border,
+              borderTopWidth: 1,
+              height: Platform.OS === 'ios' ? 80 : 60,
+              paddingBottom: Platform.OS === 'ios' ? 20 : 8,
+            },
         tabBarActiveTintColor: colors.gold,
         tabBarInactiveTintColor: colors.whiteMuted,
         tabBarLabelStyle: { fontFamily: fonts.sansMedium, fontSize: 10 },
         headerStyle: {
           backgroundColor: colors.background,
-          ...(Platform.OS === 'web' ? { height: logoHeight + 24 } : null),
+          ...(Platform.OS === 'web' ? { height: isWideWeb ? 84 : logoHeight + 24 } : null),
         },
         headerShadowVisible: false,
         headerTitle: '',
-        headerLeft: () => (
-          <View style={{ paddingLeft: spacing.md }}>
-            <Logo variant="full" height={logoHeight} />
-          </View>
-        ),
-        headerRight: () => <HeaderPhones />,
+        ...(isWideWeb
+          ? {
+              header: () => <TopNavBar />,
+            }
+          : {
+              headerLeft: () => (
+                <View style={{ paddingLeft: spacing.md }}>
+                  <Text style={{ fontFamily: fonts.serif, fontSize: 20, color: colors.gold }}>
+                    Shadab
+                  </Text>
+                </View>
+              ),
+              headerRight: () => <HeaderPhones />,
+            }),
       }}
     >
       <Tabs.Screen
