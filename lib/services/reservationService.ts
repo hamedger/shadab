@@ -1,11 +1,25 @@
-import { BUFFET_HOURS, GRAND_OPENING_START } from '../../constants/buffet'
+import {
+  BuffetMeal,
+  BUFFET_MEALS,
+  getReservationSlots,
+  getReservationStartMs,
+  getRestaurantNow,
+  addDaysToDateString,
+  GRAND_OPENING_START,
+  isMealServedOn,
+} from '../../constants/buffetSchedule'
 
 export interface ReservationInput {
   userId: string
   name: string
   email: string
   phone: string
-  partySize: number
+  meal: BuffetMeal | ''
+  adults: number
+  /** Ages 5–10 (half price). */
+  children: number
+  /** Under 5 (free). */
+  infants: number
   date: string
   time: string
   occasion?: string
@@ -21,7 +35,11 @@ export interface ReservationValidationResult {
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
 export const MAX_ADVANCE_DAYS = 30
-export const MIN_RESERVATION_PARTY_SIZE = 1
+export const MAX_RESERVATION_PARTY_SIZE = 40
+
+function isWholeNumber(n: number, min: number): boolean {
+  return Number.isInteger(n) && n >= min
+}
 
 export function validateReservation(input: ReservationInput): ReservationValidationResult {
   const errors: string[] = []
@@ -31,58 +49,40 @@ export function validateReservation(input: ReservationInput): ReservationValidat
   if (!input.phone.trim() || input.phone.replace(/\D/g, '').length < 10) {
     errors.push('Valid phone number is required')
   }
-  if (!input.date.trim() || !DATE_RE.test(input.date.trim())) {
-    errors.push('Date must be YYYY-MM-DD')
-  } else {
-    const reservationDate = new Date(`${input.date}T12:00:00`)
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    const grandOpening = new Date(`${GRAND_OPENING_START}T12:00:00`)
-    const bookingStart = grandOpening > today ? grandOpening : today
-    const maxDate = new Date(today)
-    maxDate.setDate(maxDate.getDate() + MAX_ADVANCE_DAYS)
+  if (!input.meal) errors.push('Choose breakfast, lunch, or dinner')
 
-    if (reservationDate < bookingStart) {
+  if (!input.date.trim() || !DATE_RE.test(input.date.trim())) {
+    errors.push('Choose a date')
+  } else {
+    const today = getRestaurantNow().dateString
+    const bookingStart = GRAND_OPENING_START > today ? GRAND_OPENING_START : today
+    const maxDate = addDaysToDateString(today, MAX_ADVANCE_DAYS)
+
+    if (input.date < bookingStart) {
       errors.push(
-        bookingStart > today
-          ? `Table reservations open ${GRAND_OPENING_START}`
-          : 'Date cannot be in the past',
+        bookingStart > today ? `Table reservations open ${GRAND_OPENING_START}` : 'Date cannot be in the past',
       )
-    } else if (reservationDate.getDay() === 0) {
-      errors.push('The buffet is closed Sundays — please pick another date')
+    } else if (input.date > maxDate) {
+      errors.push(`Book up to ${MAX_ADVANCE_DAYS} days in advance`)
+    } else if (input.meal && !isMealServedOn(input.date, input.meal)) {
+      errors.push(`${BUFFET_MEALS[input.meal].label} isn't served that day — opening day starts with dinner at 6:00 PM`)
     }
-    if (reservationDate > maxDate) errors.push(`Book up to ${MAX_ADVANCE_DAYS} days in advance`)
   }
-  if (!input.time.trim()) errors.push('Time is required')
-  if (input.partySize < MIN_RESERVATION_PARTY_SIZE) {
-    errors.push('Party size must be at least 1')
+  if (!input.time.trim()) errors.push('Choose a seating time')
+  else if (input.meal && !getReservationSlots(input.meal).includes(input.time)) {
+    errors.push('Choose a seating time for the selected meal')
+  } else if (input.meal && DATE_RE.test(input.date)) {
+    const startMs = getReservationStartMs(input.date, input.meal, input.time)
+    if (startMs !== null && startMs <= Date.now()) errors.push('That seating time has already passed')
+  }
+
+  if (!isWholeNumber(input.adults, 1)) errors.push('At least 1 adult is required')
+  if (!isWholeNumber(input.children, 0) || !isWholeNumber(input.infants, 0)) {
+    errors.push('Enter a valid number of children')
+  }
+  if (input.adults + input.children + input.infants > MAX_RESERVATION_PARTY_SIZE) {
+    errors.push(`For parties over ${MAX_RESERVATION_PARTY_SIZE}, please call us or request catering`)
   }
 
   return { valid: errors.length === 0, errors }
 }
-
-function parseHHmm(t: string): number {
-  const [h, m] = t.split(':').map(Number)
-  return h * 60 + m
-}
-
-function minutesToLabel(totalMinutes: number): string {
-  const h = Math.floor(totalMinutes / 60)
-  const m = totalMinutes % 60
-  const period = h >= 12 ? 'PM' : 'AM'
-  const hour12 = h % 12 || 12
-  return m === 0 ? `${hour12}:00 ${period}` : `${hour12}:${String(m).padStart(2, '0')} ${period}`
-}
-
-const RESERVATION_SLOT_INTERVAL_MINUTES = 15
-
-/** Reservation slots match buffet hours (dinner-only), 15 minutes apart. */
-export const RESERVATION_TIME_SLOTS: string[] = (() => {
-  const start = parseHHmm(BUFFET_HOURS.dinner.start)
-  const end = parseHHmm(BUFFET_HOURS.dinner.end)
-  const slots: string[] = []
-  for (let m = start; m <= end; m += RESERVATION_SLOT_INTERVAL_MINUTES) {
-    slots.push(minutesToLabel(m))
-  }
-  return slots
-})()

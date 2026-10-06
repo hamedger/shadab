@@ -39,6 +39,17 @@ export const BUFFET_SECTIONS = [
     ],
   },
   {
+    id: 'mutton-specialties',
+    title: 'Mutton Specialties',
+    items: [
+      { menuItemId: 'zafrani-mutton-dum-biryani', displayName: 'Zafrani Mutton Dum Biryani' },
+      { menuItemId: 'sufiyani-mutton-dum-biryani', displayName: 'Sufiyani Mutton Dum Biryani' },
+      { menuItemId: 'mutton-haleem', displayName: 'Mutton Haleem' },
+      { menuItemId: 'mutton-marag', displayName: 'Shahi Mutton Marag' },
+      { menuItemId: 'hyderabadi-mutton-masala', displayName: 'Hyderabadi Mutton Masala' },
+    ],
+  },
+  {
     id: 'breads',
     title: 'Breads',
     items: [{ menuItemId: 'butter-naan', displayName: 'Butter Naan' }],

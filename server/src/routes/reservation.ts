@@ -22,7 +22,10 @@ reservationRouter.post('/checkout', requireAuth, async (req: AuthedRequest, res)
     }
 
     const {
-      partySize,
+      meal = '',
+      adults,
+      children = 0,
+      infants = 0,
       date,
       time,
       occasion = '',
@@ -53,7 +56,10 @@ reservationRouter.post('/checkout', requireAuth, async (req: AuthedRequest, res)
       customerEmail,
       customerName,
       customerPhone,
-      partySize: Number(partySize),
+      meal: String(meal),
+      adults: Number(adults),
+      children: Number(children),
+      infants: Number(infants),
       date: String(date ?? ''),
       time: String(time ?? ''),
       occasion,
@@ -89,6 +95,8 @@ reservationRouter.post('/checkout', requireAuth, async (req: AuthedRequest, res)
       message.includes('required') ||
       message.includes('Date') ||
       message.includes('Party') ||
+      message.includes('Meal') ||
+      message.includes('Time') ||
       message.includes('Fully booked') ||
       message.includes('advance')
         ? 400

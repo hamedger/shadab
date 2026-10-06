@@ -3,21 +3,24 @@ import {
   DEFAULT_PICKUP_PREP_BUFFER_MINUTES,
   LOCATION_DINE_IN_HOURS,
   LOCATION_ORDER_FULFILLMENT_HOURS,
+  RESTAURANT_CITY,
   RESTAURANT_PHONE,
+  RESTAURANT_STATE,
+  RESTAURANT_STREET,
   RESTAURANT_WEBSITE,
+  RESTAURANT_ZIP,
 } from './config'
 import { Location } from '../types/location'
 
-// TODO: replace with the real street address once confirmed
 export const STATIC_LOCATIONS: Location[] = [
   {
     id: 'chicago-il',
     name: 'Shadab — Chicago',
     address: {
-      street: 'Address coming soon',
-      city: 'Chicago',
-      state: 'IL',
-      zip: '60601',
+      street: RESTAURANT_STREET,
+      city: RESTAURANT_CITY,
+      state: RESTAURANT_STATE,
+      zip: RESTAURANT_ZIP,
       country: 'US',
     },
     phone: RESTAURANT_PHONE,

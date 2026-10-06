@@ -21,7 +21,7 @@ const EMPTY_FORM = {
   name: '',
   street: '',
   city: '',
-  state: 'MI',
+  state: 'IL',
   zip: '',
   phone: '',
   isActive: true,
@@ -95,7 +95,7 @@ export default function AdminLocationsScreen() {
         address: {
           street: form.street.trim(),
           city: form.city.trim(),
-          state: form.state.trim() || 'MI',
+          state: form.state.trim() || 'IL',
           zip: form.zip.trim(),
           country: 'US',
         },

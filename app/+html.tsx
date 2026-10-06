@@ -20,21 +20,21 @@ export default function Root({ children }: PropsWithChildren) {
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 
         {/* SEO */}
-        <title>Shadab — Authentic Hyderabadi Cuisine</title>
-        <meta name="description" content="Order Dum Biryani, Haleem & Marag online. Daily Buffet. 100% Zabiha Halal. Chicago, IL." />
+        <title>Shadab Restaurant & Grill — Authentic Hyderabadi Cuisine, Chicago</title>
+        <meta name="description" content="Grand opening Fri, Oct 16 — breakfast, lunch & dinner buffet, open 24 hours. Authentic Hyderabadi, 100% Zabihah Halal. 2309-11 W Devon Ave, Chicago." />
 
         {/* Open Graph */}
-        <meta property="og:title" content="Shadab — Authentic Hyderabadi Cuisine" />
-        <meta property="og:description" content="Order Dum Biryani, Haleem & Marag online. Daily Buffet. 100% Zabiha Halal. Chicago, IL." />
-        <meta property="og:image" content="https://www.shadab.com/assets/og-image.png" />
-        <meta property="og:url" content="https://www.shadab.com" />
+        <meta property="og:title" content="Shadab Restaurant & Grill — Authentic Hyderabadi Cuisine, Chicago" />
+        <meta property="og:description" content="Grand opening Fri, Oct 16 — breakfast, lunch & dinner buffet, open 24 hours. Authentic Hyderabadi, 100% Zabihah Halal. 2309-11 W Devon Ave, Chicago." />
+        <meta property="og:image" content="https://shadab.io/assets/og-image.jpg" />
+        <meta property="og:url" content="https://shadab.io" />
         <meta property="og:type" content="website" />
 
         {/* Twitter */}
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="Shadab — Authentic Hyderabadi Cuisine" />
-        <meta name="twitter:description" content="Order Dum Biryani, Haleem & Marag online. Daily Buffet. 100% Zabiha Halal. Chicago, IL." />
-        <meta name="twitter:image" content="https://www.shadab.com/assets/og-image.png" />
+        <meta name="twitter:title" content="Shadab Restaurant & Grill — Authentic Hyderabadi Cuisine, Chicago" />
+        <meta name="twitter:description" content="Grand opening Fri, Oct 16 — breakfast, lunch & dinner buffet, open 24 hours. Authentic Hyderabadi, 100% Zabihah Halal. 2309-11 W Devon Ave, Chicago." />
+        <meta name="twitter:image" content="https://shadab.io/assets/og-image.jpg" />
 
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />

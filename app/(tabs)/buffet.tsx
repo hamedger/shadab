@@ -9,12 +9,14 @@ import { PageIntro } from '../../components/layout/PageIntro'
 import { BuffetMenuBySection } from '../../components/buffet/BuffetMenuBySection'
 import { GrandOpeningBanner } from '../../components/shared/GrandOpeningBanner'
 import { groupBuffetDishesForCustomer } from '../../lib/buffetLayout'
-import { isGrandOpeningWindow, STUDENT_BUFFET_DISCOUNT_PERCENT } from '../../constants/buffet'
+import { BuffetPriceCards } from '../../components/buffet/BuffetPriceCards'
+import {
+  BUFFET_MEALS,
+  isGrandOpeningWindow,
+  MUTTON_SPECIALTIES,
+  STUDENT_BUFFET_DISCOUNT_PERCENT,
+} from '../../constants/buffet'
 import { colors, spacing, borderRadius, fonts } from '../../constants/theme'
-
-function formatCents(cents: number) {
-  return `$${(cents / 100).toFixed(2)}`
-}
 
 function StatusBadge({ isOpen, label }: { isOpen: boolean; label: string }) {
   return (
@@ -33,7 +35,7 @@ export default function BuffetScreen() {
   const {
     isOpen,
     currentSession,
-    weekdayPrice,
+    meals,
     nextSessionLabel,
     countdownMinutes,
     todaysDishes,
@@ -46,7 +48,7 @@ export default function BuffetScreen() {
   )
 
   const statusLabel = isOpen
-    ? `Now Open — ${currentSession === 'lunch' ? 'Lunch' : 'Dinner'} Service`
+    ? `Now Open — ${currentSession ? BUFFET_MEALS[currentSession].label : ''} Buffet`
     : countdownMinutes
     ? `Opens in ${Math.floor(countdownMinutes / 60)}h ${countdownMinutes % 60}m`
     : nextSessionLabel
@@ -63,7 +65,7 @@ export default function BuffetScreen() {
       <PageIntro
         eyebrow="Daily Royal Feast"
         title="The Buffet"
-        subtitle="Twenty authentic Hyderabadi dishes, refreshed daily. Dinner service, six days a week."
+        subtitle="Breakfast, lunch, and a 40+ item dinner buffet — every day of the week. Open 24 hours for dine-in and online orders."
       />
 
       <View style={styles.statusWrap}>
@@ -74,23 +76,23 @@ export default function BuffetScreen() {
       <GrandOpeningBanner />
 
       <View style={styles.pricingRow}>
-        <View style={[styles.priceCard, styles.priceCardFeatured, styles.priceCardWide]}>
-          {isGrandOpeningWindow() ? <Text style={styles.featuredTag}>Grand Opening Special</Text> : null}
-          <Text style={styles.priceEyebrow}>Everyday Price</Text>
-          <Text style={styles.priceDays}>Monday – Saturday</Text>
-          <Text style={[styles.priceValue, styles.priceValueGold]}>{formatCents(weekdayPrice)}</Text>
-          <Text style={styles.priceUnit}>per guest</Text>
-          <Text style={styles.priceHours}>5 PM – 9 PM</Text>
-          <TouchableOpacity style={styles.goldBtn} onPress={() => router.push('/reservation' as never)}>
-            <Text style={styles.goldBtnText}>Reserve</Text>
-          </TouchableOpacity>
-        </View>
+        {isGrandOpeningWindow() ? <Text style={styles.featuredTag}>Grand Opening Special</Text> : null}
+        <BuffetPriceCards meals={meals} currentMeal={currentSession} />
+        <TouchableOpacity style={[styles.goldBtn, styles.pricingCta]} onPress={() => router.push('/reservation' as never)}>
+          <Text style={styles.goldBtnText}>Reserve</Text>
+        </TouchableOpacity>
       </View>
 
       <View style={styles.noteBlock}>
         <Text style={styles.noteLine}>Children under 5 dine free</Text>
         <Text style={styles.noteLine}>Children 5–10 receive half price</Text>
         <Text style={styles.noteLine}>Students save {STUDENT_BUFFET_DISCOUNT_PERCENT}% with valid ID</Text>
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Mutton Specialties</Text>
+        <View style={styles.sectionRule} />
+        <Text style={styles.includedText}>{MUTTON_SPECIALTIES.join(' · ')}</Text>
       </View>
 
       <View style={styles.section}>
@@ -113,7 +115,7 @@ export default function BuffetScreen() {
         <TouchableOpacity style={styles.goldBtnWide} onPress={() => router.push('/reservation' as never)}>
           <Text style={styles.goldBtnText}>Reserve Your Table</Text>
         </TouchableOpacity>
-        <Text style={styles.ctaNote}>Walk-ins welcome · Reservations recommended for parties of six or more</Text>
+        <Text style={styles.ctaNote}>We highly recommend everyone reserve — no reservation = seating not guaranteed</Text>
       </View>
     </ScrollView>
   )
@@ -146,18 +148,8 @@ const styles = StyleSheet.create({
   statusDot: { width: 8, height: 8, borderRadius: 4 },
   statusText: { fontFamily: fonts.sansMedium, fontSize: 13 },
   specialNote: { fontFamily: fonts.sans, color: colors.goldLight, fontSize: 13, marginTop: spacing.sm, textAlign: 'center', paddingHorizontal: spacing.lg },
-  pricingRow: { flexDirection: 'row', paddingHorizontal: spacing.lg, gap: spacing.md, marginBottom: spacing.lg },
-  priceCard: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: borderRadius.sm,
-    padding: spacing.lg,
-    alignItems: 'center',
-    backgroundColor: colors.background,
-  },
-  priceCardFeatured: { borderColor: colors.borderStrong },
-  priceCardWide: { flex: 1, maxWidth: 320, alignSelf: 'center' },
+  pricingRow: { paddingHorizontal: spacing.lg, gap: spacing.md, marginBottom: spacing.lg, alignItems: 'center' },
+  pricingCta: { alignSelf: 'center' },
   featuredTag: {
     fontFamily: fonts.sansMedium,
     color: colors.gold,
@@ -166,12 +158,6 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     marginBottom: spacing.sm,
   },
-  priceEyebrow: { fontFamily: fonts.sansMedium, color: colors.gold, fontSize: 11, letterSpacing: 2, textTransform: 'uppercase' },
-  priceDays: { fontFamily: fonts.sans, color: colors.whiteMuted, fontSize: 12, marginTop: 4, marginBottom: spacing.sm },
-  priceValue: { fontFamily: fonts.display, color: colors.white, fontSize: 36, lineHeight: 40 },
-  priceValueGold: { color: colors.goldBright },
-  priceUnit: { fontFamily: fonts.sans, color: colors.whiteMuted, fontSize: 12 },
-  priceHours: { fontFamily: fonts.sans, color: colors.whiteMuted, fontSize: 11, marginTop: spacing.sm, textAlign: 'center', lineHeight: 16 },
   outlineBtn: {
     marginTop: spacing.md,
     paddingHorizontal: spacing.lg,

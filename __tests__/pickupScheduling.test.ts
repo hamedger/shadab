@@ -12,9 +12,10 @@ import {
   PICKUP_ASAP,
   getDefaultPickupDate,
 } from '../lib/services/pickupScheduling'
-import { LOCATION_ORDER_FULFILLMENT_HOURS } from '../constants/config'
+import { LOCATION_ORDER_FULFILLMENT_HOURS, OPEN_24_HOURS } from '../constants/config'
 
-const northvilleHours = LOCATION_ORDER_FULFILLMENT_HOURS['chicago-il']
+// Fixed (non-24h) window so the slot/bounds logic is exercised against real open/close edges.
+const northvilleHours = { open: '11:30', close: '22:00' }
 
 describe('pickupScheduling', () => {
   it('returns today and tomorrow only', () => {
@@ -69,5 +70,13 @@ describe('pickupScheduling', () => {
     expect(bounds.min).toBe('11:30')
     expect(bounds.max).toBe('22:00')
     expect(pickupTimeFromInputValue('18:15')).toBe('6:15 PM')
+  })
+
+  it('offers slots around the clock when open 24 hours', () => {
+    expect(LOCATION_ORDER_FULFILLMENT_HOURS['chicago-il']).toEqual(OPEN_24_HOURS)
+    const slots = buildPickupTimeSlots(OPEN_24_HOURS)
+    expect(slots[0]).toBe('12:00 AM')
+    expect(slots[slots.length - 1]).toBe('11:30 PM')
+    expect(isCustomPickupTimeValid('2099-06-15', '3:15 AM', 30, OPEN_24_HOURS)).toBe(true)
   })
 })

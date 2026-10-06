@@ -22,7 +22,7 @@ const CONVERSION_CARDS: ConversionCard[] = [
   },
   {
     title: 'Reserve a Table',
-    description: 'Dine in with family and friends. Book up to 30 days ahead.',
+    description: 'Prepay your buffet online and skip the wait. No reservation = seating not guaranteed.',
     cta: 'Make Reservation',
     route: '/reservation',
   },

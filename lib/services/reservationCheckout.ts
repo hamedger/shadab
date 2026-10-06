@@ -1,9 +1,13 @@
 import { getFunctions, httpsCallable } from 'firebase/functions'
 import app, { auth } from '../firebase'
 import { getApiUrl } from '../../constants/api'
+import type { BuffetMeal } from '../../constants/buffetSchedule'
 
 export interface ReservationCheckoutInput {
-  partySize: number
+  meal: BuffetMeal
+  adults: number
+  children: number
+  infants: number
   date: string
   time: string
   occasion?: string

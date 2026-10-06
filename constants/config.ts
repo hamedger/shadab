@@ -1,9 +1,14 @@
 export const APP_NAME = 'Shadab'
+export const RESTAURANT_FULL_NAME = 'Shadab Restaurant & Grill'
 export const APP_TAGLINE = 'Authentic Hyderabadi Cuisine'
-// TODO: replace with the real Chicago address/phone once confirmed
-export const RESTAURANT_PHONE = '+13125550100'
-export const RESTAURANT_ADDRESS = 'Address coming soon, Chicago, IL'
-export const RESTAURANT_WEBSITE = 'https://www.shadab.com'
+export const OWNERSHIP_NOTE = 'Under New Ownership · Deccan Group of Restaurants'
+export const RESTAURANT_PHONE = '+18777423222'
+export const RESTAURANT_STREET = '2309-11 W Devon Ave'
+export const RESTAURANT_CITY = 'Chicago'
+export const RESTAURANT_STATE = 'IL'
+export const RESTAURANT_ZIP = '60659'
+export const RESTAURANT_ADDRESS = `${RESTAURANT_STREET}, ${RESTAURANT_CITY}, ${RESTAURANT_STATE} ${RESTAURANT_ZIP}`
+export const RESTAURANT_WEBSITE = 'https://shadab.io'
 export const SUPPORT_EMAIL = 'support@shadab.com'
 export const ORDERS_EMAIL = 'orders@shadab.com'
 /** Staff inbox for new paid order alerts (Cloud Functions). */
@@ -13,9 +18,16 @@ export const DEFAULT_LOCATION_ID = 'chicago-il'
 
 type HourRange = { open: string; close: string }
 
+/** Open/close pair meaning "open around the clock". */
+export const OPEN_24_HOURS: HourRange = { open: '00:00', close: '23:59' }
+
+export function isOpen24Hours(hours: HourRange): boolean {
+  return hours.open === OPEN_24_HOURS.open && hours.close === OPEN_24_HOURS.close
+}
+
 /** Per-location dine-in hours (24h HH:mm), open daily. */
 export const LOCATION_DINE_IN_HOURS: Record<string, HourRange> = {
-  'chicago-il': { open: '11:30', close: '22:00' },
+  'chicago-il': { ...OPEN_24_HOURS },
 }
 
 /** Build a 7-day hours map with the same open/close every day. */
@@ -36,7 +48,7 @@ export const BUSINESS_HOURS = buildWeeklyLocationHours(
 
 /** Per-location pickup/delivery hours (24h HH:mm). */
 export const LOCATION_ORDER_FULFILLMENT_HOURS: Record<string, HourRange> = {
-  'chicago-il': { open: '11:30', close: '22:00' },
+  'chicago-il': { ...OPEN_24_HOURS },
 }
 
 /** Max distance self-delivery drivers will travel; beyond this, delivery is declined. */
@@ -45,8 +57,8 @@ export const MAX_DELIVERY_RADIUS_MILES = 10
 export const FREE_DELIVERY_RADIUS_MILES = 1
 export const DELIVERY_RATE_CENTS_PER_MILE = 100
 export const DELIVERY_MINIMUM_SUBTOTAL_CENTS = 2000
-/** Fixed daily delivery window (self-delivery drivers), same at every location. */
-export const DELIVERY_FULFILLMENT_HOURS = { open: '17:00', close: '23:30' }
+/** Daily delivery window (self-delivery drivers), same at every location. */
+export const DELIVERY_FULFILLMENT_HOURS: HourRange = { ...OPEN_24_HOURS }
 
 /**
  * Self-delivery UI + checkout flow.

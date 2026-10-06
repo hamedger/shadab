@@ -93,8 +93,10 @@ service cloud.firestore {
         && request.resource.data.partySize is int
         && request.resource.data.partySize >= 1
         && request.resource.data.status == 'pending';
-      allow read, update: if isAdmin()
+      allow read: if isAdmin()
         || (request.auth != null && resource.data.userId == request.auth.uid);
+      // Status, payment, and refund fields are server/admin-only.
+      allow update: if isAdmin();
     }
 
     // Catering inquiries — public create with required fields, admin read

@@ -2,16 +2,26 @@ import { FieldValue } from 'firebase-admin/firestore'
 import { db } from '../lib/firebase'
 import { CloverLineItem } from './cloverClient'
 import {
+  addDaysToDateString,
+  BUFFET_MEALS,
+  BuffetMeal,
+  getBuffetMealPriceCents,
+  getChildBuffetPriceCents,
+  getReservationSlots,
+  getReservationStartMs,
+  getReservationSubtotalCents,
+  getReservationTaxCents,
+  RESTAURANT_TAX_RATE,
+  getRestaurantNow,
   GRAND_OPENING_START,
-  getReservationDailyCap,
-  getReservationFeeCents,
-  isGrandOpeningWindow,
-} from '../lib/reservationPricing'
+  isMealServedOn,
+} from '../lib/buffetSchedule'
+
+const MAX_PARTY_SIZE = 40
+const MEALS: BuffetMeal[] = ['breakfast', 'lunch', 'dinner']
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
 const MAX_ADVANCE_DAYS = 30
-/** Pending checkouts older than this no longer hold a daily-cap slot (abandoned checkout). */
-const PENDING_HOLD_MINUTES = 20
 
 export interface CreatePendingReservationInput {
   cloverMerchantId?: string
@@ -19,7 +29,10 @@ export interface CreatePendingReservationInput {
   customerEmail: string
   customerName: string
   customerPhone: string
-  partySize: number
+  meal: string
+  adults: number
+  children: number
+  infants: number
   date: string
   time: string
   occasion?: string
@@ -43,31 +56,6 @@ function isUnpaidPending(data: Record<string, unknown>): boolean {
   return data.status === 'pending' && !String(data.cloverPaymentId ?? '').trim()
 }
 
-async function countReservationsHoldingCapacity(locationId: string, date: string): Promise<number> {
-  const snapshot = await db
-    .collection('reservations')
-    .where('locationId', '==', locationId)
-    .where('date', '==', date)
-    .get()
-
-  const cutoffMs = Date.now() - PENDING_HOLD_MINUTES * 60 * 1000
-  let count = 0
-
-  for (const doc of snapshot.docs) {
-    const data = doc.data()
-    if (data.status === 'confirmed') {
-      count += 1
-      continue
-    }
-    if (isUnpaidPending(data)) {
-      const createdAt = data.createdAt?.toDate?.()?.getTime?.() ?? Date.now()
-      if (createdAt >= cutoffMs) count += 1
-    }
-  }
-
-  return count
-}
-
 export async function createPendingReservation(
   input: CreatePendingReservationInput,
 ): Promise<CreatePendingReservationResult> {
@@ -76,36 +64,42 @@ export async function createPendingReservation(
   const phoneDigits = input.customerPhone.replace(/\D/g, '')
   if (phoneDigits.length < 10) throw new Error('Valid phone number is required')
   if (!DATE_RE.test(input.date)) throw new Error('Date must be YYYY-MM-DD')
-  if (!input.time.trim()) throw new Error('Time is required')
-  if (!Number.isInteger(input.partySize) || input.partySize < 1) {
-    throw new Error('Party size must be at least 1')
+  if (!MEALS.includes(input.meal as BuffetMeal)) throw new Error('Meal is required (breakfast, lunch, or dinner)')
+  const meal = input.meal as BuffetMeal
+  if (!getReservationSlots(meal).includes(input.time.trim())) {
+    throw new Error('Time is required and must be a seating time for the selected meal')
   }
+  const guests = { adults: input.adults, children: input.children, infants: input.infants }
+  if (!Number.isInteger(guests.adults) || guests.adults < 1) throw new Error('Party needs at least 1 adult')
+  if (!Number.isInteger(guests.children) || guests.children < 0 || !Number.isInteger(guests.infants) || guests.infants < 0) {
+    throw new Error('Party size has an invalid number of children')
+  }
+  const partySize = guests.adults + guests.children + guests.infants
+  if (partySize > MAX_PARTY_SIZE) throw new Error(`Party size over ${MAX_PARTY_SIZE} — please call the restaurant`)
 
-  const reservationDate = new Date(`${input.date}T12:00:00`)
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const grandOpeningStartDate = new Date(`${GRAND_OPENING_START}T12:00:00`)
-  const bookingStart = grandOpeningStartDate > today ? grandOpeningStartDate : today
-  const maxDate = new Date(today)
-  maxDate.setDate(maxDate.getDate() + MAX_ADVANCE_DAYS)
-  if (reservationDate < bookingStart) {
+  const today = getRestaurantNow().dateString
+  const bookingStart = GRAND_OPENING_START > today ? GRAND_OPENING_START : today
+  if (input.date < bookingStart) {
     throw new Error(
       bookingStart > today ? `Table reservations open ${GRAND_OPENING_START}` : 'Date cannot be in the past',
     )
   }
-  if (reservationDate.getDay() === 0) throw new Error('The buffet is closed Sundays — please pick another date')
-  if (reservationDate > maxDate) throw new Error(`Book up to ${MAX_ADVANCE_DAYS} days in advance`)
-
-  const dailyCap = getReservationDailyCap(input.date)
-  if (dailyCap !== null) {
-    const existing = await countReservationsHoldingCapacity(input.locationId, input.date)
-    if (existing >= dailyCap) {
-      throw new Error(`Fully booked for ${input.date}. Please choose a different date.`)
-    }
+  if (input.date > addDaysToDateString(today, MAX_ADVANCE_DAYS)) {
+    throw new Error(`Book up to ${MAX_ADVANCE_DAYS} days in advance`)
   }
+  if (!isMealServedOn(input.date, meal)) {
+    throw new Error(`Date unavailable: ${BUFFET_MEALS[meal].label} is not served on ${input.date}`)
+  }
+  const startsAtMs = getReservationStartMs(input.date, meal, input.time.trim())
+  if (startsAtMs === null || startsAtMs <= Date.now()) throw new Error('Date and time have already passed')
 
-  const feeCents = getReservationFeeCents(input.date, input.partySize)
-  const grandOpening = isGrandOpeningWindow(input.date)
+  // Reservations prepay 100% of the buffet plus tax: adults full price, kids 5–10 half, under 5 free.
+  const adultCents = getBuffetMealPriceCents(input.date, meal)
+  const childCents = getChildBuffetPriceCents(adultCents)
+  const subtotalCents = getReservationSubtotalCents(input.date, meal, guests)
+  const taxCents = getReservationTaxCents(subtotalCents)
+  const feeCents = subtotalCents + taxCents
+  const mealLabel = BUFFET_MEALS[meal].label
 
   const reservationRef = db.collection('reservations').doc()
 
@@ -115,13 +109,20 @@ export async function createPendingReservation(
     name: input.customerName.trim(),
     email: input.customerEmail.trim().toLowerCase(),
     phone: input.customerPhone.trim(),
-    partySize: input.partySize,
+    partySize,
+    meal,
+    adults: guests.adults,
+    children: guests.children,
+    infants: guests.infants,
     date: input.date,
-    time: input.time,
+    time: input.time.trim(),
+    startsAtMs,
     occasion: input.occasion?.trim() ?? '',
     specialRequests: input.specialRequests?.trim() ?? '',
     locationId: input.locationId,
     status: 'pending',
+    subtotalCents,
+    taxCents,
     feeCents,
     cloverMerchantId: input.cloverMerchantId ?? '',
     cloverCheckoutSessionId: '',
@@ -130,23 +131,18 @@ export async function createPendingReservation(
     updatedAt: FieldValue.serverTimestamp(),
   })
 
-  const lineItems: CloverLineItem[] = grandOpening
-    ? [
-        {
-          name: 'Grand Opening Buffet Reservation (per guest)',
-          price: Math.round(feeCents / input.partySize),
-          unitQty: input.partySize,
-          note: `${input.date} at ${input.time}`,
-        },
-      ]
-    : [
-        {
-          name: `Table Reservation — ${input.partySize} guest${input.partySize === 1 ? '' : 's'}`,
-          price: feeCents,
-          unitQty: 1,
-          note: `${input.date} at ${input.time}`,
-        },
-      ]
+  const note = `${mealLabel} buffet · ${input.date} at ${input.time.trim()}`
+  const lineItems: CloverLineItem[] = [
+    { name: `${mealLabel} Buffet — Adult`, price: adultCents, unitQty: guests.adults, note },
+    ...(guests.children > 0
+      ? [{ name: `${mealLabel} Buffet — Child (5–10)`, price: childCents, unitQty: guests.children, note }]
+      : []),
+    {
+      name: `Sales tax (${(RESTAURANT_TAX_RATE * 100).toFixed(2)}%)`,
+      price: taxCents,
+      unitQty: 1,
+    },
+  ]
 
   const [firstName, ...rest] = input.customerName.trim().split(/\s+/)
   const lastName = rest.join(' ')
@@ -225,3 +221,4 @@ export async function markReservationDeclinedByCheckoutSession(
   await doc.ref.update({ status: 'cancelled', updatedAt: FieldValue.serverTimestamp() })
   return doc.id
 }
+

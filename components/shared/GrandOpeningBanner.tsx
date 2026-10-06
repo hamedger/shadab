@@ -1,89 +1,111 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import { View, Text, TouchableOpacity, StyleSheet, useWindowDimensions } from 'react-native'
 import { Image } from 'expo-image'
-import { LinearGradient } from 'expo-linear-gradient'
 import { useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import {
-  GRAND_OPENING_BUFFET_PRICE_CENTS,
+  BUFFET_HIGHLIGHTS,
+  GRAND_OPENING_START,
   hasGrandOpeningEnded,
   isGrandOpeningWindow,
+  MUTTON_SPECIALTIES,
 } from '../../constants/buffet'
+import { getMealStatusesForDate } from '../../lib/services/buffetService'
+import { BuffetPriceCards } from '../buffet/BuffetPriceCards'
 import { colors, spacing, borderRadius, fonts } from '../../constants/theme'
 
-const BG_IMAGE = require('../../assets/hero/Boneless_Chicken_Dum_Biryani.png')
-const WIDE_BREAKPOINT = 720
+const HEADER_IMAGE = require('../../assets/flyers/grand-opening-header.jpg')
+const HEADER_ASPECT = 1024 / 640
+const MAX_WIDTH = 960
 
-function formatCents(cents: number) {
-  return `$${(cents / 100).toFixed(2)}`
+function formatOpeningDate(dateString: string): string {
+  const [y, m, d] = dateString.split('-').map(Number)
+  return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString('en-US', {
+    timeZone: 'UTC',
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+  })
 }
 
-const SPARKLES = [
-  { top: '14%', left: '10%', size: 16, opacity: 0.8 },
-  { top: '22%', left: '88%', size: 12, opacity: 0.6 },
-  { top: '72%', left: '6%', size: 12, opacity: 0.5 },
-  { top: '68%', left: '92%', size: 18, opacity: 0.75 },
-  { top: '10%', left: '50%', size: 10, opacity: 0.5 },
-] as const
-
+/** Grand opening week promo (Oct 16–22): flyer header, special buffet prices, highlights, reserve CTA. */
 export function GrandOpeningBanner() {
   const router = useRouter()
   const { width } = useWindowDimensions()
-  const isWide = width >= WIDE_BREAKPOINT
+  const meals = useMemo(() => getMealStatusesForDate(GRAND_OPENING_START), [])
 
   if (hasGrandOpeningEnded()) return null
 
   const live = isGrandOpeningWindow()
-  const price = formatCents(GRAND_OPENING_BUFFET_PRICE_CENTS)
+  const imageWidth = Math.min(width, MAX_WIDTH)
 
   return (
     <View style={styles.section}>
-      <Image source={BG_IMAGE} style={StyleSheet.absoluteFill} contentFit="cover" />
-      <LinearGradient
-        colors={['rgba(10,33,25,0.5)', 'rgba(10,33,25,0.86)', colors.background]}
-        locations={[0, 0.6, 1]}
-        style={StyleSheet.absoluteFill}
-        pointerEvents="none"
+      <Image
+        source={HEADER_IMAGE}
+        style={{ width: imageWidth, height: imageWidth / HEADER_ASPECT, alignSelf: 'center' }}
+        contentFit="cover"
+        accessibilityLabel="Shadab Restaurant & Grill grand opening — Chicago, you're not ready for this! Under new ownership, Deccan Group of Restaurants."
       />
 
-      {SPARKLES.map((s, i) => (
-        <Ionicons
-          key={i}
-          name="sparkles"
-          size={s.size}
-          color={colors.goldLight}
-          style={[styles.sparkle, { top: s.top, left: s.left, opacity: s.opacity }]}
-        />
-      ))}
-
-      <View style={[styles.inner, isWide && styles.innerWide]}>
-        <View style={styles.ribbon}>
-          <Text style={styles.ribbonText}>🎉 Grand Opening Celebration</Text>
+      <View style={styles.inner}>
+        <View style={styles.factsRow}>
+          <View style={styles.fact}>
+            <Ionicons name="calendar-outline" size={22} color={colors.gold} />
+            <View>
+              <Text style={styles.factLabel}>{live ? 'Now open' : 'Grand opening'}</Text>
+              <Text style={styles.factValue}>{formatOpeningDate(GRAND_OPENING_START)}</Text>
+            </View>
+          </View>
+          <View style={styles.fact}>
+            <Ionicons name="time-outline" size={22} color={colors.gold} />
+            <View>
+              <Text style={styles.factLabel}>Dinner starts</Text>
+              <Text style={styles.factValue}>6:00 PM</Text>
+            </View>
+          </View>
+          <View style={styles.fact}>
+            <Text style={styles.badge24}>24</Text>
+            <Text style={styles.factLabelWide}>The first Indian 24-hour restaurant in Metro Chicago</Text>
+          </View>
         </View>
 
-        <Text style={styles.headline} accessibilityRole="header">
-          August 25 – 28
-        </Text>
+        <View style={styles.ribbon}>
+          <Text style={styles.ribbonText}>Special pricing for the first week of grand opening!</Text>
+        </View>
 
-        <Text style={styles.priceLine}>
-          Buffet <Text style={styles.priceValue}>{price}</Text>/person
-        </Text>
+        <BuffetPriceCards meals={meals} />
 
-        <Text style={styles.subtitle}>
-          {live
-            ? `Four days only — through Friday, August 28.`
-            : `Mark your calendar — four days of celebration, starting August 25.`}
-        </Text>
+        <View style={styles.highlights}>
+          {BUFFET_HIGHLIGHTS.map((h) => (
+            <View key={h.label} style={styles.highlight}>
+              <Ionicons name={h.icon} size={18} color={colors.gold} />
+              <Text style={styles.highlightText}>{h.label}</Text>
+            </View>
+          ))}
+        </View>
 
-        <Text style={styles.urgency}>Reserve your table now to lock in the grand opening price.</Text>
+        <View style={styles.mutton}>
+          <Text style={styles.muttonTitle}>Mutton Specialties Highlights</Text>
+          <Text style={styles.muttonList}>{MUTTON_SPECIALTIES.join('  ·  ')}</Text>
+          <Text style={styles.muttonMore}>
+            Seafood · Chicken · Vegetarian specialties — and many more items!
+          </Text>
+        </View>
 
         <TouchableOpacity
           style={styles.cta}
           onPress={() => router.push('/reservation' as never)}
           accessibilityRole="button"
-          accessibilityLabel="Reserve a table for the grand opening buffet discount"
+          accessibilityLabel="Reserve your seating now for confirmed dine-in"
         >
-          <Text style={styles.ctaText}>Reserve Now</Text>
+          <Ionicons name="calendar" size={20} color={colors.white} />
+          <View>
+            <Text style={styles.ctaText}>Reserve your seating now</Text>
+            <Text style={styles.ctaSub}>For confirmed dine-in</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={colors.white} />
         </TouchableOpacity>
       </View>
     </View>
@@ -93,85 +115,114 @@ export function GrandOpeningBanner() {
 const styles = StyleSheet.create({
   section: {
     marginTop: spacing.lg,
-    minHeight: 360,
-    justifyContent: 'center',
-    overflow: 'hidden',
     backgroundColor: colors.backgroundSecondary,
-  },
-  sparkle: {
-    position: 'absolute',
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderStrong,
   },
   inner: {
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.xxl,
-    maxWidth: 640,
+    paddingVertical: spacing.xl,
+    maxWidth: MAX_WIDTH,
     alignSelf: 'center',
     width: '100%',
     alignItems: 'center',
+    gap: spacing.lg,
   },
-  innerWide: {
-    paddingVertical: spacing.xxl + spacing.md,
+  factsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: spacing.lg,
+  },
+  fact: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, maxWidth: 280 },
+  factLabel: {
+    fontFamily: fonts.sansMedium,
+    color: colors.whiteMuted,
+    fontSize: 11,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+  },
+  factLabelWide: { flex: 1, fontFamily: fonts.sansMedium, color: colors.white, fontSize: 13, lineHeight: 18 },
+  factValue: { fontFamily: fonts.sansBold, color: colors.white, fontSize: 17 },
+  badge24: {
+    width: 40,
+    height: 40,
+    lineHeight: 36,
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: colors.gold,
+    textAlign: 'center',
+    fontFamily: fonts.sansBold,
+    color: colors.goldLight,
+    fontSize: 16,
   },
   ribbon: {
+    backgroundColor: '#9b1c1c',
     borderWidth: 1,
-    borderColor: colors.borderStrong,
-    backgroundColor: 'rgba(13,43,34,0.6)',
+    borderColor: colors.gold,
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.xs,
-    borderRadius: borderRadius.full,
-    marginBottom: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.sm,
   },
   ribbonText: {
     fontFamily: fonts.sansBold,
-    color: colors.goldLight,
-    fontSize: 12,
-    letterSpacing: 0.5,
-  },
-  headline: {
-    fontFamily: fonts.display,
     color: colors.white,
-    fontSize: 44,
-    lineHeight: 48,
+    fontSize: 15,
     textAlign: 'center',
-    marginBottom: spacing.sm,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
   },
-  priceLine: {
-    fontFamily: fonts.sans,
-    color: colors.whiteMuted,
-    fontSize: 16,
-    marginBottom: spacing.sm,
+  highlights: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: spacing.sm,
   },
-  priceValue: {
-    fontFamily: fonts.sansBold,
-    color: colors.gold,
-    fontSize: 22,
+  highlight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: borderRadius.full,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs + 2,
   },
-  subtitle: {
-    fontFamily: fonts.sans,
-    color: colors.whiteMuted,
-    fontSize: 14,
-    lineHeight: 20,
-    textAlign: 'center',
-    maxWidth: 420,
-    marginBottom: spacing.xs,
+  highlightText: { fontFamily: fonts.sansMedium, color: colors.white, fontSize: 12 },
+  mutton: {
+    alignSelf: 'stretch',
+    alignItems: 'center',
+    backgroundColor: colors.white,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    gap: spacing.xs,
   },
-  urgency: {
-    fontFamily: fonts.sansMedium,
-    color: colors.goldLight,
-    fontSize: 13,
-    textAlign: 'center',
-    marginBottom: spacing.lg,
+  muttonTitle: {
+    fontFamily: fonts.serif,
+    color: colors.background,
+    fontSize: 18,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
   },
+  muttonList: { fontFamily: fonts.sansMedium, color: colors.background, fontSize: 13, textAlign: 'center', lineHeight: 20 },
+  muttonMore: { fontFamily: fonts.sans, color: colors.background, fontSize: 12, textAlign: 'center' },
   cta: {
-    backgroundColor: colors.gold,
-    paddingHorizontal: spacing.xl + 4,
-    paddingVertical: spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    backgroundColor: '#b91c1c',
+    borderWidth: 2,
+    borderColor: colors.gold,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.sm + 2,
     borderRadius: borderRadius.full,
   },
   ctaText: {
     fontFamily: fonts.sansBold,
-    color: colors.background,
-    fontSize: 15,
+    color: colors.white,
+    fontSize: 16,
+    textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
+  ctaSub: { fontFamily: fonts.sansBold, color: colors.goldLight, fontSize: 13, textTransform: 'uppercase' },
 })

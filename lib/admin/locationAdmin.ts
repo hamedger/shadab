@@ -11,7 +11,7 @@ function defaultLocationPayload(id: string, input: Partial<LocationInput>): Loca
     address: {
       street: input.address?.street?.trim() ?? '',
       city: input.address?.city?.trim() ?? '',
-      state: input.address?.state?.trim() ?? 'MI',
+      state: input.address?.state?.trim() ?? 'IL',
       zip: input.address?.zip?.trim() ?? '',
       country: input.address?.country?.trim() ?? 'US',
     },
@@ -39,7 +39,7 @@ export function buildLocationId(input: Pick<LocationInput, 'id' | 'name' | 'addr
   return slugifyLocationId(
     input.name ?? '',
     input.address?.city ?? '',
-    input.address?.state ?? 'MI',
+    input.address?.state ?? 'IL',
   )
 }
 

@@ -10,7 +10,7 @@ import {
 describe('cartService', () => {
   describe('calculateTax', () => {
     it('calculates 6% tax rounded to nearest cent', () => {
-      expect(calculateTax(1000)).toBe(60)
+      expect(calculateTax(1000)).toBe(108)
       expect(calculateTax(1799)).toBe(Math.round(1799 * TAX_RATE))
     })
   })
@@ -32,7 +32,7 @@ describe('cartService', () => {
   describe('calculateOrderTotal', () => {
     it('sums subtotal, tax, service fee, and tip', () => {
       const total = calculateOrderTotal({ subtotal: 1000, tip: 200 })
-      expect(total).toBe(1000 + 60 + 30 + 200)
+      expect(total).toBe(1000 + 108 + 30 + 200)
     })
 
     it('applies discounts and never returns negative', () => {

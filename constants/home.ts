@@ -6,8 +6,8 @@ export function formatBusinessHours(hours: LocationHours): string {
 }
 
 export const RESTAURANT_STATS = [
-  { value: '4.8★', label: 'Guest Rating' },
-  { value: '100%', label: 'Zabiha Halal' },
-  { value: '80+', label: 'Menu Items' },
-  { value: 'Chicago', label: 'Proudly Local' },
+  { value: '24/7', label: 'Open 24 Hours' },
+  { value: '100%', label: 'Zabihah Halal' },
+  { value: '40+', label: 'Dinner Buffet Items' },
+  { value: 'Devon Ave', label: 'Chicago' },
 ] as const

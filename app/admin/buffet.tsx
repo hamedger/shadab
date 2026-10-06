@@ -4,7 +4,6 @@ import {
   Text,
   ScrollView,
   StyleSheet,
-  Switch,
   Alert,
   ActivityIndicator,
   TextInput,
@@ -21,7 +20,12 @@ import { AdminLocationFilter } from '../../components/admin/AdminLocationFilter'
 import { colors, spacing, borderRadius, fonts } from '../../constants/theme'
 import { DEFAULT_LOCATION_ID } from '../../constants/config'
 import { useAdminMenu } from '../../hooks/useAdminMenu'
-import { isBuffetDishNeedsRefill, isBuffetDishServing } from '../../lib/services/buffetService'
+import {
+  formatMealHours,
+  isBuffetDishNeedsRefill,
+  isBuffetDishServing,
+} from '../../lib/services/buffetService'
+import { BUFFET_MEAL_ORDER, BUFFET_MEALS } from '../../constants/buffet'
 import {
   AdminBuffetStatusFilter,
   buildAdminBuffetSections,
@@ -109,26 +113,6 @@ export default function AdminBuffetScreen() {
 
   if (loading) {
     return <ActivityIndicator color={colors.gold} style={{ flex: 1, marginTop: 80 }} />
-  }
-
-  const toggleLunch = async (val: boolean) => {
-    try {
-      const cfg = await getConfig()
-      await updateDoc(buffetRef, { isLunchActive: val, updatedAt: serverTimestamp() })
-      if (!config) setConfig(cfg)
-    } catch (e) {
-      Alert.alert('Update failed', e instanceof Error ? e.message : 'Could not update lunch session')
-    }
-  }
-
-  const toggleDinner = async (val: boolean) => {
-    try {
-      const cfg = await getConfig()
-      await updateDoc(buffetRef, { isDinnerActive: val, updatedAt: serverTimestamp() })
-      if (!config) setConfig(cfg)
-    } catch (e) {
-      Alert.alert('Update failed', e instanceof Error ? e.message : 'Could not update dinner session')
-    }
   }
 
   const addDish = async (item: MenuItem, needsRefill: boolean, cfg: BuffetConfig) => {
@@ -243,16 +227,14 @@ export default function AdminBuffetScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Sessions</Text>
         <View style={styles.card}>
-          <ToggleRow
-            label="Lunch active"
-            value={config?.isLunchActive ?? false}
-            onChange={toggleLunch}
-          />
-          <ToggleRow
-            label="Dinner active"
-            value={config?.isDinnerActive ?? false}
-            onChange={toggleDinner}
-          />
+          {BUFFET_MEAL_ORDER.map((meal) => (
+            <Text key={meal} style={styles.legendHint}>
+              {BUFFET_MEALS[meal].label}: {formatMealHours(meal)} · every day
+            </Text>
+          ))}
+          <Text style={styles.legendHint}>
+            Open/closed status follows this schedule automatically (America/Chicago).
+          </Text>
         </View>
       </View>
 
@@ -390,28 +372,6 @@ export default function AdminBuffetScreen() {
         <Button label="Save Note" onPress={saveNote} loading={saving} />
       </View>
     </ScrollView>
-  )
-}
-
-function ToggleRow({
-  label,
-  value,
-  onChange,
-}: {
-  label: string
-  value: boolean
-  onChange: (v: boolean) => void
-}) {
-  return (
-    <View style={styles.toggleRow}>
-      <Text style={styles.toggleLabel}>{label}</Text>
-      <Switch
-        value={value}
-        onValueChange={onChange}
-        thumbColor={value ? colors.gold : colors.whiteMuted}
-        trackColor={{ true: colors.goldDark, false: colors.border }}
-      />
-    </View>
   )
 }
 

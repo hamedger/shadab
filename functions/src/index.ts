@@ -1,6 +1,7 @@
 // Export all Cloud Functions
 export { confirmCloverOrder } from './orders/confirmCloverOrder'
 export { confirmCloverReservation } from './reservations/confirmCloverReservation'
+export { notifyCustomerOnReservationConfirmed } from './reservations/notifyCustomerOnReservationConfirmed'
 export { updateOrderStatus } from './orders/updateOrderStatus'
 export { notifyStaffOnOrder } from './orders/notifyStaffOnOrder'
 export { notifyCustomerOnOrderConfirmed } from './orders/notifyCustomerOnOrderConfirmed'
@@ -15,4 +16,3 @@ export {
   askGrowthCopilot,
 } from './ai/growthCopilot'
 export { getBuffetStatus } from './buffet/getBuffetStatus'
-export { openDinner, closeDinner } from './buffet/scheduler'

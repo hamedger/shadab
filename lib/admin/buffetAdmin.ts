@@ -1,5 +1,5 @@
 import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore'
-import { BUFFET_PRICING } from '../../constants/buffet'
+import { BUFFET_DAYS, BUFFET_MEALS } from '../../constants/buffet'
 import { createDefaultBuffetDishes } from '../buffetLayout'
 import { db } from '../firebase'
 import { locationIdsForFirestoreQuery, normalizeLocationId } from '../locationUtils'
@@ -13,15 +13,16 @@ export function defaultBuffetConfigFields(
   const canonical = normalizeLocationId(locationId)
   return {
     locationId: canonical,
-    weekdayLunchPrice: BUFFET_PRICING.weekday.lunch,
-    weekdayDinnerPrice: BUFFET_PRICING.weekday.dinner,
-    weekendLunchPrice: BUFFET_PRICING.weekend.lunch,
-    weekendDinnerPrice: BUFFET_PRICING.weekend.dinner,
-    lunchStart: '11:00',
-    lunchEnd: '15:00',
-    dinnerStart: '17:00',
-    dinnerEnd: '21:00',
-    buffetDays: [1, 2, 3, 4, 5, 6],
+    // Informational only — the site prices and schedules the buffet from constants/buffetSchedule.ts.
+    weekdayLunchPrice: BUFFET_MEALS.lunch.regularPriceCents,
+    weekdayDinnerPrice: BUFFET_MEALS.dinner.regularPriceCents,
+    weekendLunchPrice: BUFFET_MEALS.lunch.regularPriceCents,
+    weekendDinnerPrice: BUFFET_MEALS.dinner.regularPriceCents,
+    lunchStart: BUFFET_MEALS.lunch.start,
+    lunchEnd: BUFFET_MEALS.lunch.end,
+    dinnerStart: BUFFET_MEALS.dinner.start,
+    dinnerEnd: BUFFET_MEALS.dinner.end,
+    buffetDays: BUFFET_DAYS,
     todaysDishes: createDefaultBuffetDishes(menuItems),
     isLunchActive: false,
     isDinnerActive: false,

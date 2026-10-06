@@ -3,7 +3,6 @@ import { doc, onSnapshot } from 'firebase/firestore'
 import { db, isFirebaseConfigured } from '../lib/firebase'
 import { handleFirestoreListenerError } from '../lib/firestoreErrors'
 import { BuffetConfig, BuffetStatus } from '../types/buffet'
-import { RESTAURANT_TIMEZONE } from '../constants/buffet'
 import { DEFAULT_LOCATION_ID } from '../constants/config'
 import { computeBuffetStatus } from '../lib/services/buffetService'
 
@@ -36,11 +35,7 @@ export function useBuffet(locationId: string = DEFAULT_LOCATION_ID): BuffetStatu
     return () => clearInterval(interval)
   }, [])
 
-  const status = computeBuffetStatus({
-    config,
-    now,
-    timezone: RESTAURANT_TIMEZONE,
-  })
+  const status = computeBuffetStatus({ config, now })
 
   return { ...status, isLoading }
 }

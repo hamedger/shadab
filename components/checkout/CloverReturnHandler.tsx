@@ -1,3 +1,5 @@
+import { RESTAURANT_PHONE } from '../../constants/config'
+import { formatPhoneDisplay } from '../../lib/locationUtils'
 import React, { useEffect, useRef, useState } from 'react'
 import { View, Text, StyleSheet, Platform } from 'react-native'
 import { useGlobalSearchParams, useRouter } from 'expo-router'
@@ -39,7 +41,7 @@ export function CloverReturnHandler() {
 
     void (async () => {
       let confirmedOrderId = ''
-      let confirmedReservation = false
+      let confirmedReservation: { id: string; date: string; time: string } | null = null
       try {
         const result = await confirmCloverOrderAfterRedirect(checkoutSessionId, orderIdParam)
         if (result?.orderId) confirmedOrderId = result.orderId
@@ -53,7 +55,13 @@ export function CloverReturnHandler() {
             checkoutSessionId,
             orderIdParam,
           )
-          if (reservationResult?.reservationId) confirmedReservation = true
+          if (reservationResult?.reservationId) {
+            confirmedReservation = {
+              id: reservationResult.reservationId,
+              date: reservationResult.date,
+              time: reservationResult.time,
+            }
+          }
         } catch (error) {
           console.warn('[CloverReturn] confirmCloverReservation failed — webhook may confirm later', error)
         }
@@ -65,7 +73,10 @@ export function CloverReturnHandler() {
       if (confirmedOrderId) {
         setMessage(`Payment confirmed! Order #${formatOrderShortId(confirmedOrderId)}`)
       } else if (confirmedReservation) {
-        setMessage('Payment confirmed! Your table reservation is booked.')
+        setMessage(
+          `Payment confirmed! Reservation #${confirmedReservation.id.slice(-6).toUpperCase()} — ${confirmedReservation.date} at ${confirmedReservation.time}. Show your confirmation email at the host stand. ` +
+            `Need to cancel? Call ${formatPhoneDisplay(RESTAURANT_PHONE)} — free up to 48 hours before, 20% fee within 48 hours.`,
+        )
       } else {
         setMessage('Payment confirmed!')
       }
@@ -73,7 +84,7 @@ export function CloverReturnHandler() {
       router.replace('/(tabs)/' as never)
 
       if (Platform.OS === 'web' && typeof window !== 'undefined') {
-        window.setTimeout(() => setMessage(null), 8000)
+        window.setTimeout(() => setMessage(null), confirmedReservation ? 20000 : 8000)
       }
     })()
   }, [params.session_id, params.orderId, clearCart, router])

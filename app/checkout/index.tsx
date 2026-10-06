@@ -22,6 +22,7 @@ import {
   DELIVERY_ENABLED,
   DELIVERY_FULFILLMENT_HOURS,
   DELIVERY_MINIMUM_SUBTOTAL_CENTS,
+  RESTAURANT_STATE,
 } from '../../constants/config'
 import { isApiConfigured } from '../../constants/api'
 import { colors, spacing, borderRadius, fonts } from '../../constants/theme'
@@ -62,10 +63,10 @@ export default function CheckoutIndex() {
   const { firebaseUser, userProfile, isLoading: authLoading } = useAuth()
   const { location, locationId, locations, loading: locationsLoading, hasSelection } =
     useSelectedLocation()
-  const [street, setStreet] = useState('123 Main St')
+  const [street, setStreet] = useState('')
   const [unit, setUnit] = useState('')
   const [city, setCity] = useState('Chicago')
-  const [zip, setZip] = useState('48167')
+  const [zip, setZip] = useState('')
   const [deliveryPhone, setDeliveryPhone] = useState('')
   const [deliveryInstructions, setDeliveryInstructions] = useState('')
   const [loading, setLoading] = useState(false)
@@ -81,7 +82,7 @@ export default function CheckoutIndex() {
     return {
       street: street.trim(),
       city: city.trim(),
-      state: 'MI',
+      state: RESTAURANT_STATE,
       zip: zip.trim(),
       country: 'US',
       unit: unit.trim() || undefined,
@@ -505,7 +506,7 @@ export default function CheckoutIndex() {
                         : !cart.deliveryQuoteReady
                           ? 'Enter your delivery address for a live quote.'
                           : !isPickupScheduleValid(cart.pickupDate, cart.pickupTime, prepBufferMinutes, fulfillmentHours)
-                            ? 'Delivery is available 5:00pm–11:30pm. Choose a time in that window.'
+                            ? 'Choose a valid delivery time.'
                             : ''
                 : 'Choose a pickup date and time to continue.'}
           </Text>

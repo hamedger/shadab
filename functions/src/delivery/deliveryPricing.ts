@@ -43,7 +43,7 @@ export function feeCentsForDistance(distanceMiles: number): number {
 export async function geocodeAddress(
   address: DeliveryAddressInput,
 ): Promise<{ lat: number; lng: number }> {
-  const oneLine = `${address.street.trim()}, ${address.city.trim()}, ${(address.state ?? 'MI').trim()} ${address.zip.trim()}`
+  const oneLine = `${address.street.trim()}, ${address.city.trim()}, ${(address.state ?? 'IL').trim()} ${address.zip.trim()}`
   const url = new URL('https://geocoding.geo.census.gov/geocoder/locations/onelineaddress')
   url.searchParams.set('address', oneLine)
   url.searchParams.set('benchmark', 'Public_AR_Current')

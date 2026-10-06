@@ -30,6 +30,7 @@ const NAV_ITEMS = [
   { href: '/admin/revenue', label: 'Revenue', icon: 'cash-outline' as const, locked: true },
   { href: '/admin/orders', label: 'Orders', icon: 'receipt-outline' as const },
   { href: '/admin/delivery', label: 'Deliveries', icon: 'bicycle-outline' as const },
+  { href: '/admin/arrivals', label: 'Arrivals', icon: 'checkmark-done-outline' as const },
   { href: '/admin/reservations', label: 'Reservations', icon: 'calendar-outline' as const },
   { href: '/admin/catering', label: 'Catering', icon: 'people-outline' as const },
   { href: '/admin/locations', label: 'Locations', icon: 'location-outline' as const },

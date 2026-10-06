@@ -10,7 +10,7 @@ export const deliveryQuote = functions.https.onCall(async (request) => {
   const {
     dropoffStreet,
     dropoffCity,
-    dropoffState = 'MI',
+    dropoffState = 'IL',
     dropoffZip,
     locationId,
   } = data as {
@@ -32,7 +32,7 @@ export const deliveryQuote = functions.https.onCall(async (request) => {
   try {
     const { feeCents, distanceMiles } = await computeDeliveryFee({
       locationId: String(locationId ?? 'chicago-il'),
-      deliveryAddress: { street, city, state: String(dropoffState ?? 'MI').trim(), zip },
+      deliveryAddress: { street, city, state: String(dropoffState ?? 'IL').trim(), zip },
     })
 
     return {

@@ -13,7 +13,7 @@ import { useRouter } from 'expo-router'
 import { useBuffet } from '../../hooks/useBuffet'
 import { OrderOnlinePicker } from '../location/OrderOnlinePicker'
 import { RESTAURANT_STATS } from '../../constants/home'
-import { APP_TAGLINE } from '../../constants/config'
+import { APP_TAGLINE, OWNERSHIP_NOTE, RESTAURANT_FULL_NAME } from '../../constants/config'
 import { colors, spacing, borderRadius, fonts } from '../../constants/theme'
 import { blurActiveElementOnWeb } from '../../lib/a11y'
 
@@ -65,13 +65,14 @@ export function BuffetHero() {
       />
 
       <View style={[styles.inner, isWide && styles.innerWide]}>
-        <Text style={styles.eyebrow}>{APP_TAGLINE}</Text>
+        <Text style={styles.eyebrow}>{RESTAURANT_FULL_NAME}</Text>
+        <Text style={styles.tagline}>{APP_TAGLINE} · Chicago, Illinois</Text>
         <Text style={styles.headline} accessibilityRole="header">
           Taste the{'\n'}Hyderabadi{'\n'}Heritage
         </Text>
         <Text style={styles.subtitle}>
-          Authentic dum biryani, haleem, and royal feasts — crafted the traditional way in
-          Chicago.
+          Authentic dum biryani, haleem, and royal feasts — breakfast, lunch, and dinner buffets
+          every day, and open 24 hours on Devon Ave.
         </Text>
 
         <TouchableOpacity
@@ -122,6 +123,10 @@ export function BuffetHero() {
           </TouchableOpacity>
         </View>
 
+        <View style={styles.ownership}>
+          <Text style={styles.ownershipText}>{OWNERSHIP_NOTE}</Text>
+        </View>
+
         <View style={[styles.stats, !isWide && styles.statsMobile]}>
           {RESTAURANT_STATS.map((stat, index) => (
             <React.Fragment key={stat.label}>
@@ -164,6 +169,32 @@ const styles = StyleSheet.create({
     letterSpacing: 4,
     textTransform: 'uppercase',
     marginBottom: spacing.sm,
+  },
+  tagline: {
+    fontFamily: fonts.sans,
+    color: colors.whiteMuted,
+    fontSize: 12,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    marginBottom: spacing.md,
+    textAlign: 'center',
+  },
+  ownership: {
+    backgroundColor: '#9b1c1c',
+    borderWidth: 1,
+    borderColor: colors.gold,
+    borderRadius: borderRadius.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs + 2,
+    marginBottom: spacing.lg,
+  },
+  ownershipText: {
+    fontFamily: fonts.sansBold,
+    color: colors.white,
+    fontSize: 12,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    textAlign: 'center',
   },
   headline: {
     fontFamily: fonts.display,

@@ -1,13 +1,20 @@
 import {
   parseTime,
-  inSession,
-  minutesUntil,
-  isWeekendDay,
   computeBuffetStatus,
+  findCurrentMeal,
   formatBuffetTime,
   isBuffetDishServing,
 } from '../lib/services/buffetService'
-import { RESTAURANT_TIMEZONE } from '../constants/buffet'
+import {
+  getCancellationTerms,
+  getReservationSlots,
+  getReservationStartMs,
+  getReservationSubtotalCents,
+  getReservationTotalCents,
+} from '../constants/buffetSchedule'
+
+// America/Chicago is UTC-5 (CDT) in October 2026, UTC-6 (CST) from Nov 1.
+const chicago = (iso: string) => new Date(`${iso}-05:00`)
 
 describe('buffetService', () => {
   describe('parseTime', () => {
@@ -19,107 +26,69 @@ describe('buffetService', () => {
 
   describe('formatBuffetTime', () => {
     it('formats 24h to 12h display', () => {
-      expect(formatBuffetTime('11:00')).toBe('11:00 AM')
-      expect(formatBuffetTime('17:00')).toBe('5:00 PM')
+      expect(formatBuffetTime('07:00')).toBe('7:00 AM')
+      expect(formatBuffetTime('18:00')).toBe('6:00 PM')
+      expect(formatBuffetTime('01:00')).toBe('1:00 AM')
     })
   })
 
-  describe('inSession', () => {
-    it('returns true during lunch hours', () => {
-      const noon = new Date('2026-06-09T12:00:00')
-      expect(inSession(noon, '11:00', '15:00')).toBe(true)
-    })
-
-    it('returns false outside session', () => {
-      const morning = new Date('2026-06-09T10:00:00')
-      expect(inSession(morning, '11:00', '15:00')).toBe(false)
-    })
-  })
-
-  describe('minutesUntil', () => {
-    it('calculates minutes until a time today', () => {
-      const tenAm = new Date('2026-06-09T10:00:00')
-      expect(minutesUntil(tenAm, '11:00')).toBe(60)
-    })
-  })
-
-  describe('isWeekendDay', () => {
-    it('returns true only for Saturday', () => {
-      const saturday = new Date('2026-06-06T12:00:00')
-      const friday = new Date('2026-06-05T12:00:00')
-      expect(isWeekendDay(saturday)).toBe(true)
-      expect(isWeekendDay(friday)).toBe(false)
+  describe('findCurrentMeal', () => {
+    it('maps after-midnight minutes to the previous evening dinner', () => {
+      expect(findCurrentMeal('2026-10-17', 30)).toEqual({ meal: 'dinner', serviceDate: '2026-10-16' })
+      expect(findCurrentMeal('2026-10-17', 75)).toBeNull()
     })
   })
 
   describe('computeBuffetStatus', () => {
-    it('reports closed at noon — buffet is dinner-only', () => {
-      const mondayNoon = new Date('2026-06-08T12:00:00')
-      const status = computeBuffetStatus({
-        config: null,
-        now: mondayNoon,
-        timezone: RESTAURANT_TIMEZONE,
-      })
+    it('is closed before the grand opening and points at opening-day dinner', () => {
+      const status = computeBuffetStatus({ config: null, now: chicago('2026-10-05T12:00:00') })
       expect(status.isOpen).toBe(false)
-      expect(status.currentSession).toBe(null)
+      expect(status.nextSessionLabel).toMatch(/Grand opening.*Dinner at 6:00 PM/)
+      expect(status.meals.map((m) => m.priceCents)).toEqual([999, 1299, 1499])
     })
 
-    it('reports open during weekday dinner hours with default config', () => {
-      const mondayEvening = new Date('2026-06-08T18:00:00')
-      const status = computeBuffetStatus({
-        config: null,
-        now: mondayEvening,
-        timezone: RESTAURANT_TIMEZONE,
+    it('serves breakfast, lunch, and dinner at grand opening prices', () => {
+      expect(computeBuffetStatus({ config: null, now: chicago('2026-10-18T08:00:00') })).toMatchObject({
+        isOpen: true,
+        currentSession: 'breakfast',
+        currentPrice: 999,
       })
-      expect(status.isOpen).toBe(true)
+      expect(computeBuffetStatus({ config: null, now: chicago('2026-10-18T14:00:00') })).toMatchObject({
+        currentSession: 'lunch',
+        currentPrice: 1299,
+      })
+      expect(computeBuffetStatus({ config: null, now: chicago('2026-10-18T19:00:00') })).toMatchObject({
+        currentSession: 'dinner',
+        currentPrice: 1499,
+      })
+    })
+
+    it('keeps the promo price for dinner running past midnight on the last promo night', () => {
+      const status = computeBuffetStatus({ config: null, now: chicago('2026-10-23T00:30:00') })
       expect(status.currentSession).toBe('dinner')
+      expect(status.currentPrice).toBe(1499)
+    })
+
+    it('switches to regular prices after grand opening week', () => {
+      const status = computeBuffetStatus({ config: null, now: chicago('2026-10-23T19:00:00') })
       expect(status.currentPrice).toBe(2499)
+      expect(status.meals.map((m) => m.priceCents)).toEqual([999, 1999, 2499])
+      expect(status.meals.every((m) => !m.isSpecial)).toBe(true)
     })
 
-    it('uses weekend pricing on Saturday', () => {
-      const saturdayNoon = new Date('2026-06-06T12:00:00')
-      const status = computeBuffetStatus({
-        config: null,
-        now: saturdayNoon,
-        timezone: RESTAURANT_TIMEZONE,
-      })
-      expect(status.isWeekend).toBe(true)
-      expect(status.lunchPrice).toBe(2499)
-      expect(status.dinnerPrice).toBe(2499)
+    it('is open on Sundays', () => {
+      // 2026-10-18 is a Sunday
+      expect(computeBuffetStatus({ config: null, now: chicago('2026-10-18T13:30:00') }).isOpen).toBe(true)
     })
 
-    it('uses Firestore weekday and weekend prices for display cards', () => {
-      const fridayNoon = new Date('2026-06-12T12:00:00')
-      const status = computeBuffetStatus({
-        config: {
-          weekdayLunchPrice: 1799,
-          weekdayDinnerPrice: 1799,
-          weekendLunchPrice: 2499,
-          weekendDinnerPrice: 2499,
-        } as never,
-        now: fridayNoon,
-        timezone: RESTAURANT_TIMEZONE,
-      })
-
-      expect(status.weekdayPrice).toBe(1799)
-      expect(status.weekendPrice).toBe(2499)
-      expect(status.lunchPrice).toBe(1799)
-      expect(status.dinnerPrice).toBe(1799)
-    })
-
-    it('reports closed on Sunday', () => {
-      const sunday = new Date('2026-06-07T12:00:00')
-      const status = computeBuffetStatus({
-        config: null,
-        now: sunday,
-        timezone: RESTAURANT_TIMEZONE,
-      })
+    it('reports the next meal between services', () => {
+      const status = computeBuffetStatus({ config: null, now: chicago('2026-10-18T16:30:00') })
       expect(status.isOpen).toBe(false)
-      expect(status.nextSessionLabel).toContain('Monday')
+      expect(status.nextSessionLabel).toBe('Dinner opens at 6:00 PM')
+      expect(status.countdownMinutes).toBe(90)
     })
 
     it('includes paused dishes on the customer buffet list', () => {
-      const mondayNoon = new Date('2026-06-08T12:00:00')
       const status = computeBuffetStatus({
         config: {
           todaysDishes: [
@@ -148,11 +117,61 @@ describe('buffetService', () => {
             },
           ],
         } as never,
-        now: mondayNoon,
-        timezone: RESTAURANT_TIMEZONE,
+        now: chicago('2026-10-19T12:00:00'),
       })
 
       expect(status.todaysDishes.map((d) => d.menuItemId)).toEqual(['a', 'b', 'c'])
+    })
+  })
+
+  describe('reservation pricing', () => {
+    it('charges adults full price, kids 5–10 half, under 5 free', () => {
+      expect(getReservationSubtotalCents('2026-10-16', 'dinner', { adults: 2, children: 1, infants: 1 })).toBe(
+        1499 * 2 + 750,
+      )
+      expect(getReservationSubtotalCents('2026-10-30', 'lunch', { adults: 1, children: 0, infants: 0 })).toBe(1999)
+    })
+
+    it('adds 10.75% Chicago restaurant tax to the prepaid total', () => {
+      // $19.99 + $2.15 tax
+      expect(getReservationTotalCents('2026-10-30', 'lunch', { adults: 1, children: 0, infants: 0 })).toBe(2214)
+    })
+
+    it('ends seatings 30 minutes before close, including after midnight', () => {
+      const dinner = getReservationSlots('dinner')
+      expect(dinner[0]).toBe('6:00 PM')
+      expect(dinner[dinner.length - 1]).toBe('12:30 AM')
+      expect(getReservationSlots('breakfast').slice(-1)[0]).toBe('12:00 PM')
+    })
+
+    it('places after-midnight dinner seatings on the next calendar day', () => {
+      expect(getReservationStartMs('2026-10-16', 'dinner', '12:30 AM')).toBe(
+        new Date('2026-10-17T00:30:00-05:00').getTime(),
+      )
+      expect(getReservationStartMs('2026-11-05', 'lunch', '1:00 PM')).toBe(
+        new Date('2026-11-05T13:00:00-06:00').getTime(),
+      )
+    })
+  })
+
+  describe('cancellation policy', () => {
+    const start = new Date('2026-10-20T19:00:00-05:00').getTime()
+    const hour = 60 * 60 * 1000
+
+    it('refunds in full 48+ hours before seating', () => {
+      expect(getCancellationTerms(5000, start, start - 49 * hour)).toEqual({
+        isLateCancellation: false,
+        feeCents: 0,
+        refundCents: 5000,
+      })
+    })
+
+    it('keeps 20% within 48 hours', () => {
+      expect(getCancellationTerms(5000, start, start - 47 * hour)).toEqual({
+        isLateCancellation: true,
+        feeCents: 1000,
+        refundCents: 4000,
+      })
     })
   })
 

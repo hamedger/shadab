@@ -1,22 +1,23 @@
-import { GRAND_OPENING_END, GRAND_OPENING_START, isGrandOpeningWindow } from './buffet'
+export {
+  CHILD_HALF_PRICE_AGES,
+  FREE_CANCELLATION_HOURS,
+  getCancellationTerms,
+  getReservationPartySize,
+  getReservationSlots,
+  getReservationStartMs,
+  getReservationSubtotalCents,
+  getReservationTaxCents,
+  getReservationTotalCents,
+  GRAND_OPENING_END,
+  GRAND_OPENING_START,
+  isGrandOpeningWindow,
+  isMealServedOn,
+  LATE_CANCELLATION_FEE_PERCENT,
+  RESTAURANT_TAX_RATE,
+} from './buffetSchedule'
+import { RESTAURANT_PHONE } from './config'
+import { formatPhoneDisplay } from '../lib/locationUtils'
+export type { BuffetMeal, ReservationGuests } from './buffetSchedule'
 
-export { GRAND_OPENING_START, GRAND_OPENING_END, isGrandOpeningWindow }
-
-/** Per-guest, grand opening week only. */
-export const GRAND_OPENING_RESERVATION_FEE_PER_GUEST_CENTS = 999
-/** Flat per-table fee once the grand opening promo ends, regardless of party size. */
-export const REGULAR_RESERVATION_FEE_CENTS = 1500
-
-/** Daily reservation cap once the grand opening promo ends (no cap during grand opening week). */
-export const REGULAR_RESERVATION_DAILY_CAP = 5
-
-/** Aug 25-28: number of guests x $9.99. After: flat $15/table regardless of party size. */
-export function getReservationFeeCents(dateString: string, partySize: number): number {
-  return isGrandOpeningWindow(dateString)
-    ? GRAND_OPENING_RESERVATION_FEE_PER_GUEST_CENTS * Math.max(1, partySize)
-    : REGULAR_RESERVATION_FEE_CENTS
-}
-
-export function getReservationDailyCap(dateString: string): number | null {
-  return isGrandOpeningWindow(dateString) ? null : REGULAR_RESERVATION_DAILY_CAP
-}
+/** Plain-language cancellation policy shown before payment and in admin. */
+export const CANCELLATION_POLICY_TEXT = `Free cancellation up to 48 hours before your reservation. Cancellations within 48 hours are charged a 20% fee; the rest is refunded. To cancel, call us at ${formatPhoneDisplay(RESTAURANT_PHONE)}.`

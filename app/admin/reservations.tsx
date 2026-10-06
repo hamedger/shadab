@@ -13,9 +13,13 @@ import { useAdminLocationStore } from '../../store/adminLocationStore'
 import { AdminLocationFilter } from '../../components/admin/AdminLocationFilter'
 import { SimpleFilterBar } from '../../components/admin/SimpleFilterBar'
 import {
+  cancelReservationWithPolicy,
+  formatReservationNumber,
+  previewCancellation,
   RESERVATION_STATUS_LABELS,
   updateReservationStatus,
 } from '../../lib/admin/reservationAdmin'
+import { BUFFET_MEALS } from '../../constants/buffetSchedule'
 import { formatOrderTime } from '../../lib/admin/stats'
 import { Reservation, ReservationStatus } from '../../types/reservation'
 import { colors, spacing, borderRadius, fonts } from '../../constants/theme'
@@ -30,6 +34,10 @@ const FILTER_OPTIONS: { key: ReservationFilter; label: string }[] = [
   { key: 'confirmed', label: 'Confirmed' },
   { key: 'cancelled', label: 'Cancelled' },
 ]
+
+function formatCents(cents: number) {
+  return `$${(cents / 100).toFixed(2)}`
+}
 
 function statusColor(status: ReservationStatus): string {
   switch (status) {
@@ -58,6 +66,8 @@ function ReservationCard({
   locationName?: string
 }) {
   const [updating, setUpdating] = useState(false)
+  const [confirmingCancel, setConfirmingCancel] = useState(false)
+  const cancelPreview = confirmingCancel ? previewCancellation(reservation) : null
 
   const setStatus = async (status: ReservationStatus) => {
     setUpdating(true)
@@ -70,11 +80,37 @@ function ReservationCard({
     }
   }
 
+  const cancel = async () => {
+    setUpdating(true)
+    try {
+      await cancelReservationWithPolicy(reservation.id)
+      setConfirmingCancel(false)
+    } catch (e) {
+      Alert.alert('Cancel failed', e instanceof Error ? e.message : 'Could not cancel reservation')
+    } finally {
+      setUpdating(false)
+    }
+  }
+
+  const mealLabel = BUFFET_MEALS[reservation.meal ?? 'dinner'].label
+  const guestBreakdown =
+    reservation.adults != null
+      ? [
+          `${reservation.adults} adult${reservation.adults === 1 ? '' : 's'}`,
+          reservation.children ? `${reservation.children} child 5–10` : '',
+          reservation.infants ? `${reservation.infants} under 5` : '',
+        ]
+          .filter(Boolean)
+          .join(', ')
+      : null
+
   return (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
         <View>
-          <Text style={styles.guestName}>{reservation.name}</Text>
+          <Text style={styles.guestName}>
+            {reservation.name} · #{formatReservationNumber(reservation.id)}
+          </Text>
           <Text style={styles.submitted}>{formatOrderTime(reservation.createdAt)}</Text>
         </View>
         <View style={[styles.statusPill, { borderColor: statusColor(reservation.status) }]}>
@@ -85,8 +121,21 @@ function ReservationCard({
       </View>
 
       <Text style={styles.detailLine}>
-        {reservation.date} at {reservation.time} · Party of {reservation.partySize}
+        {mealLabel} · {reservation.date} at {reservation.time} · Party of {reservation.partySize}
       </Text>
+      {guestBreakdown ? <Text style={styles.noteLine}>{guestBreakdown}</Text> : null}
+      {reservation.feeCents != null ? (
+        <Text style={styles.noteLine}>
+          Prepaid {formatCents(reservation.feeCents)}
+          {reservation.status === 'cancelled' && reservation.refundCents != null
+            ? ` · Refund ${formatCents(reservation.refundCents)}${
+                reservation.cancellationFeeCents
+                  ? ` (kept ${formatCents(reservation.cancellationFeeCents)} late-cancel fee)`
+                  : ''
+              } — issue in Clover`
+            : ''}
+        </Text>
+      ) : null}
       {locationName ? <Text style={styles.locationLine}>{locationName}</Text> : null}
       <Text style={styles.contactLine}>
         {reservation.email} · {reservation.phone}
@@ -110,20 +159,47 @@ function ReservationCard({
             label="Cancel"
             size="sm"
             variant="ghost"
-            onPress={() => setStatus('cancelled')}
+            onPress={cancel}
             disabled={updating}
           />
         </View>
       )}
-      {reservation.status === 'confirmed' && (
+      {reservation.checkedInAt ? (
+        <Text style={styles.noteLine}>
+          Checked in{' '}
+          {reservation.checkedInAt.toDate().toLocaleTimeString('en-US', {
+            timeZone: 'America/Chicago',
+            hour: 'numeric',
+            minute: '2-digit',
+          })}
+        </Text>
+      ) : null}
+      {reservation.status === 'confirmed' && !reservation.checkedInAt && (
         <View style={styles.actions}>
-          <Button
-            label="Cancel"
-            size="sm"
-            variant="ghost"
-            onPress={() => setStatus('cancelled')}
-            loading={updating}
-          />
+          {cancelPreview ? (
+            <>
+              <Text style={styles.noteLine}>
+                {cancelPreview.isLateCancellation
+                  ? `Within 48 hours: keep ${formatCents(cancelPreview.feeCents)} (20%), refund ${formatCents(cancelPreview.refundCents)}.`
+                  : `More than 48 hours out: full refund of ${formatCents(cancelPreview.refundCents)}.`}
+              </Text>
+              <Button label="Confirm cancel" size="sm" onPress={cancel} loading={updating} />
+              <Button
+                label="Keep"
+                size="sm"
+                variant="ghost"
+                onPress={() => setConfirmingCancel(false)}
+                disabled={updating}
+              />
+            </>
+          ) : (
+            <Button
+              label="Cancel"
+              size="sm"
+              variant="ghost"
+              onPress={() => setConfirmingCancel(true)}
+            />
+          )}
         </View>
       )}
     </View>

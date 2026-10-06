@@ -1,63 +1,60 @@
-/** Grand opening promo window (YYYY-MM-DD, inclusive, America/Chicago). */
-export const GRAND_OPENING_START = '2026-08-25'
-export const GRAND_OPENING_END = '2026-08-28'
+import {
+  BUFFET_MEALS,
+  BuffetMeal,
+  getBuffetMealPriceCents,
+  getRestaurantNow,
+  hasGrandOpeningEnded as hasGrandOpeningEndedOn,
+  isGrandOpeningWindow as isGrandOpeningWindowOn,
+} from './buffetSchedule'
 
-export const GRAND_OPENING_BUFFET_PRICE_CENTS = 999
-export const REGULAR_BUFFET_PRICE_CENTS = 2499
+export * from './buffetSchedule'
 
 /** Shown as an in-person policy note; not redeemed online. */
 export const STUDENT_BUFFET_DISCOUNT_PERCENT = 20
 
 function todayDateString(): string {
-  const now = new Date()
-  const chicagoNow = new Date(now.toLocaleString('en-US', { timeZone: 'America/Chicago' }))
-  const y = chicagoNow.getFullYear()
-  const m = String(chicagoNow.getMonth() + 1).padStart(2, '0')
-  const d = String(chicagoNow.getDate()).padStart(2, '0')
-  return `${y}-${m}-${d}`
+  return getRestaurantNow().dateString
 }
 
 export function isGrandOpeningWindow(dateString: string = todayDateString()): boolean {
-  return dateString >= GRAND_OPENING_START && dateString <= GRAND_OPENING_END
+  return isGrandOpeningWindowOn(dateString)
 }
 
-/** True once the grand opening promo is over — use to hide "coming soon" announcements. */
+/** True once the grand opening promo is over — use to hide grand opening announcements. */
 export function hasGrandOpeningEnded(dateString: string = todayDateString()): boolean {
-  return dateString > GRAND_OPENING_END
+  return hasGrandOpeningEndedOn(dateString)
 }
 
-export function getBuffetPriceCents(dateString: string = todayDateString()): number {
-  return isGrandOpeningWindow(dateString)
-    ? GRAND_OPENING_BUFFET_PRICE_CENTS
-    : REGULAR_BUFFET_PRICE_CENTS
+/** Price for a meal on a date; defaults to today. */
+export function getMealPriceCents(meal: BuffetMeal, dateString: string = todayDateString()): number {
+  return getBuffetMealPriceCents(dateString, meal)
 }
 
-/**
- * One flat price every day during the grand opening promo, then one flat regular
- * price afterward — kept as weekday/weekend sub-fields only so existing per-location
- * Firestore BuffetConfig overrides (weekdayLunchPrice, etc.) still line up.
- */
-export const BUFFET_PRICING = {
-  get weekday() {
-    const price = getBuffetPriceCents()
-    return { lunch: price, dinner: price }
-  },
-  get weekend() {
-    const price = getBuffetPriceCents()
-    return { lunch: price, dinner: price }
-  },
-  children: {
-    under5: 0,
-    age5to10: 'half' as const,
-  },
-}
-
-// Buffet is dinner-only.
+/** Breakfast, lunch, and dinner hours, served every day. */
 export const BUFFET_HOURS = {
-  dinner: { start: '17:00', end: '21:00' },
+  breakfast: { start: BUFFET_MEALS.breakfast.start, end: BUFFET_MEALS.breakfast.end },
+  lunch: { start: BUFFET_MEALS.lunch.start, end: BUFFET_MEALS.lunch.end },
+  dinner: { start: BUFFET_MEALS.dinner.start, end: BUFFET_MEALS.dinner.end },
 }
 
-// 0=Sun, 1=Mon ... 6=Sat — Sunday closed
-export const BUFFET_DAYS = [1, 2, 3, 4, 5, 6]
+// 0=Sun, 1=Mon ... 6=Sat — open every day
+export const BUFFET_DAYS = [0, 1, 2, 3, 4, 5, 6]
 
-export const RESTAURANT_TIMEZONE = 'America/Chicago'
+/** Buffet station highlights from the grand opening flyer. */
+export const BUFFET_HIGHLIGHTS = [
+  { icon: 'restaurant-outline', label: '40+ item dinner buffet' },
+  { icon: 'ice-cream-outline', label: 'Pani puri' },
+  { icon: 'fish-outline', label: 'Seafood specialties' },
+  { icon: 'flame-outline', label: 'Chicken specialties' },
+  { icon: 'leaf-outline', label: 'Vegetarian specialties' },
+  { icon: 'happy-outline', label: 'Kids treats' },
+  { icon: 'cafe-outline', label: 'Dessert specialties' },
+] as const
+
+export const MUTTON_SPECIALTIES = [
+  'Zafrani Mutton Dum Biryani',
+  'Sufiyani Mutton Dum Biryani',
+  'Mutton Haleem',
+  'Shahi Mutton Marag',
+  'Hyderabadi Mutton Masala',
+] as const

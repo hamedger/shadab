@@ -125,9 +125,8 @@ export function ReservationDatePicker({ value, onChange, maxAdvanceDays = 30 }: 
             <View style={styles.grid}>
               {days.map((day) => {
                 const inMonth = isSameMonth(day, viewMonth)
-                const isSunday = day.getDay() === 0
                 const outOfRange = isBefore(day, bookingStart) || isAfter(day, maxDate)
-                const disabled = !inMonth || isSunday || outOfRange
+                const disabled = !inMonth || outOfRange
                 const isSelected = selected ? isSameDay(day, selected) : false
 
                 return (
@@ -153,7 +152,7 @@ export function ReservationDatePicker({ value, onChange, maxAdvanceDays = 30 }: 
             </View>
 
             <Text style={styles.hint}>
-              Booking opens {format(bookingStart, 'MMM d')} · closed Sundays
+              Booking opens {format(bookingStart, 'MMM d')} · open every day
             </Text>
           </View>
         </View>

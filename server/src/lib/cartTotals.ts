@@ -1,6 +1,7 @@
 import { loyaltyDiscountCents } from './loyalty'
 
-export const TAX_RATE = 0.06
+/** Chicago restaurant sales tax — see RESTAURANT_TAX_RATE in ./buffetSchedule.ts. */
+export const TAX_RATE = 0.1075
 export const SERVICE_FEE_RATE = 0.03
 
 export interface TotalsInput {

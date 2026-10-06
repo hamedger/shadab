@@ -5,6 +5,7 @@ import { validateReservation, ReservationInput } from '../lib/services/reservati
 import { startReservationCheckout } from '../lib/services/reservationCheckout'
 import { redirectToCloverCheckout } from '../lib/services/cloverCheckout'
 import { auth } from '../lib/firebase'
+import type { BuffetMeal } from '../constants/buffetSchedule'
 import { signInForGuestCheckout } from '../lib/guestAuth'
 import { ensureGuestProfile } from '../lib/guestProfile'
 
@@ -42,7 +43,10 @@ export function useReservation() {
         }
 
         const { href } = await startReservationCheckout({
-          partySize: payload.partySize,
+          meal: payload.meal as BuffetMeal,
+          adults: payload.adults,
+          children: payload.children,
+          infants: payload.infants,
           date: payload.date,
           time: payload.time,
           occasion: payload.occasion,

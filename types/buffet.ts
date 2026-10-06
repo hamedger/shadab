@@ -1,5 +1,6 @@
 import { Timestamp } from 'firebase/firestore'
 import { BuffetSectionId } from '../constants/buffetLayout'
+import type { BuffetMeal } from '../constants/buffetSchedule'
 
 export interface BuffetDish {
   menuItemId: string
@@ -15,6 +16,7 @@ export interface BuffetDish {
   buffetCategory?: BuffetSectionId
 }
 
+/** Legacy price/hour fields are no longer read — prices and hours come from constants/buffetSchedule.ts. */
 export interface BuffetConfig {
   locationId: string
   weekdayLunchPrice: number
@@ -33,17 +35,23 @@ export interface BuffetConfig {
   updatedAt: Timestamp
 }
 
+export interface BuffetMealStatus {
+  meal: BuffetMeal
+  label: string
+  /** e.g. "7:00 AM – 12:30 PM" */
+  hoursLabel: string
+  priceCents: number
+  regularPriceCents: number
+  /** True during grand opening week when the special beats the regular price. */
+  isSpecial: boolean
+}
+
 export interface BuffetStatus {
   isOpen: boolean
-  currentSession: 'lunch' | 'dinner' | null
+  currentSession: BuffetMeal | null
   currentPrice: number
-  isWeekend: boolean
-  lunchPrice: number
-  dinnerPrice: number
-  /** Mon–Fri display price for marketing cards */
-  weekdayPrice: number
-  /** Saturday display price for marketing cards */
-  weekendPrice: number
+  /** Today's breakfast, lunch, and dinner, in service order. */
+  meals: BuffetMealStatus[]
   nextSessionLabel: string
   countdownMinutes: number | null
   todaysDishes: BuffetDish[]

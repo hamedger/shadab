@@ -3,6 +3,7 @@ import { Linking, Platform } from 'react-native'
 import {
   DEFAULT_LOCATION_ID,
   DEFAULT_PICKUP_PREP_BUFFER_MINUTES,
+  isOpen24Hours,
   LOCATION_DINE_IN_HOURS,
   LOCATION_ORDER_FULFILLMENT_HOURS,
 } from '../constants/config'
@@ -24,6 +25,7 @@ function formatHourMinuteLabel(hhmm: string): string {
 }
 
 export function formatDineInHoursLabel(hours: LocationHours): string {
+  if (isOpen24Hours(hours)) return 'Open 24 Hours · Every Day'
   return `Open Daily · ${formatHourMinuteLabel(hours.open)} – ${formatHourMinuteLabel(hours.close)}`
 }
 

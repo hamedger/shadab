@@ -31,8 +31,8 @@ function getReferrerBlockedMessage(error: FirebaseError): string {
   const blocked = match?.[1]?.replace(/-/g, '/') ?? null
   const blockedLine = blocked ? `\n\nBlocked URL: ${blocked}` : ''
   const referrers = [
-    'https://www.shadab.com/*',
-    'https://shadab.com/*',
+    'https://shadab.io/*',
+    'https://www.shadab.io/*',
     'https://shadab-5c64e.web.app/*',
     'https://shadab-5c64e.firebaseapp.com/*',
     'http://localhost:8081/*',
