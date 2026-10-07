@@ -41,7 +41,7 @@ describe('reservation confirmation email', () => {
     expect(body).toContain('Free cancellation up to 48 hours before your reservation.')
     expect(body).toContain('20% fee')
     expect(body).toContain('call us at (877) 742-3222')
-    expect(body).toContain('2309-11 W Devon Ave, Chicago, IL 60659')
+    expect(body).toContain('2311 W Devon Ave, Chicago, IL 60659')
   })
 
   it('clarifies after-midnight dinner seatings', () => {

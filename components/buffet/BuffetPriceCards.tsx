@@ -33,7 +33,7 @@ export function BuffetPriceCards({ meals, currentMeal }: BuffetPriceCardsProps) 
               <Ionicons name={MEAL_ICONS[m.meal]} size={18} color={colors.gold} />
               <Text style={styles.title}>{m.label} Buffet</Text>
             </View>
-            <Text style={styles.everyDay}>Every day</Text>
+            <Text style={styles.everyDay}>{m.daysLabel}</Text>
             <Text style={styles.hours}>{m.hoursLabel}</Text>
             <Text style={styles.price}>{formatCents(m.priceCents)}</Text>
             <Text style={styles.regular}>
@@ -42,6 +42,7 @@ export function BuffetPriceCards({ meals, currentMeal }: BuffetPriceCardsProps) 
                 {formatCents(m.regularPriceCents)}
               </Text>
             </Text>
+            {m.otherDaysPriceLabel ? <Text style={styles.otherDays}>{m.otherDaysPriceLabel}</Text> : null}
             {m.meal === 'dinner' ? <Text style={styles.badge}>40+ items</Text> : null}
             {live ? <Text style={styles.liveTag}>Serving now</Text> : null}
           </View>
@@ -81,6 +82,7 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   everyDay: { fontFamily: fonts.sansMedium, color: colors.gold, fontSize: 12 },
+  otherDays: { fontFamily: fonts.sansMedium, color: colors.whiteMuted, fontSize: 12 },
   hours: { fontFamily: fonts.sans, color: colors.whiteMuted, fontSize: 13, marginBottom: spacing.xs },
   price: { fontFamily: fonts.sansBold, color: colors.goldLight, fontSize: 30 },
   regular: { fontFamily: fonts.sans, color: colors.whiteMuted, fontSize: 12 },

@@ -5,17 +5,19 @@ import { useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import {
   BUFFET_HIGHLIGHTS,
+  BUFFET_MEALS,
   GRAND_OPENING_START,
   hasGrandOpeningEnded,
   isGrandOpeningWindow,
   MUTTON_SPECIALTIES,
+  OPENING_DAY_FIRST_MEAL,
 } from '../../constants/buffet'
-import { getMealStatusesForDate } from '../../lib/services/buffetService'
+import { formatBuffetTime, getMealStatusesForDate } from '../../lib/services/buffetService'
 import { BuffetPriceCards } from '../buffet/BuffetPriceCards'
 import { colors, spacing, borderRadius, fonts } from '../../constants/theme'
 
 const HEADER_IMAGE = require('../../assets/flyers/grand-opening-header.jpg')
-const HEADER_ASPECT = 1024 / 640
+const HEADER_ASPECT = 1021 / 582
 const MAX_WIDTH = 960
 
 function formatOpeningDate(dateString: string): string {
@@ -61,8 +63,8 @@ export function GrandOpeningBanner() {
           <View style={styles.fact}>
             <Ionicons name="time-outline" size={22} color={colors.gold} />
             <View>
-              <Text style={styles.factLabel}>Dinner starts</Text>
-              <Text style={styles.factValue}>6:00 PM</Text>
+              <Text style={styles.factLabel}>Grand opening</Text>
+              <Text style={styles.factValue}>{formatBuffetTime(BUFFET_MEALS[OPENING_DAY_FIRST_MEAL].start)}</Text>
             </View>
           </View>
           <View style={styles.fact}>
@@ -90,7 +92,7 @@ export function GrandOpeningBanner() {
           <Text style={styles.muttonTitle}>Mutton Specialties Highlights</Text>
           <Text style={styles.muttonList}>{MUTTON_SPECIALTIES.join('  ·  ')}</Text>
           <Text style={styles.muttonMore}>
-            Seafood · Chicken · Vegetarian specialties — and many more items!
+            Fish · Chicken · Vegetarian specialties — and many more items!
           </Text>
         </View>
 

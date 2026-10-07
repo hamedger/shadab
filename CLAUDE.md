@@ -24,11 +24,11 @@ Forked from the Deccan Bawarchi codebase and re-themed; feature set is the same 
 - Clover credentials **never** in client code — `server/` and Cloud Functions only
 - Delivery fee is **recomputed server-side** at order creation (never trusted from the client); delivery-only $20 minimum order. Dine-in, pickup, and delivery are **open 24 hours**
 - Buffet meals, prices, grand opening week (Fri Oct 16 – Thu Oct 22, 2026), reservation pricing, and cancellation policy live in `constants/buffetSchedule.ts` — an identical copy is in `server/src/lib/buffetSchedule.ts`; edit both
-- Buffet runs every day in **America/Chicago**: breakfast 7:00–12:30 ($9.99), lunch 1:00–4:00 ($19.99, $12.99 opening week), dinner 6:00 PM–1:00 AM ($24.99, $14.99 opening week). Dinner after midnight belongs to the previous day's service. Opening day is dinner only
+- Buffet runs every day in **America/Chicago**: breakfast 7:00–12:30 ($9.99), lunch 1:30–4:00 (Mon–Thu $13.99; Fri–Sun $24.99, $19.99 opening week), dinner 6:00 PM–1:00 AM ($24.99, $19.99 opening week). Dinner after midnight belongs to the previous day's service. Opening day (Fri Oct 16) starts with lunch at 1:30 PM
 - Reservations prepay 100% of the buffet + 10.75% Chicago tax (kids 5–10 half, under 5 free); no daily cap. Cancellation: free 48h+ before seating, else 20% kept — cancelled by phone, staff cancel in admin and refund in Clover
 - Tax rate 10.75% is duplicated in `buffetSchedule.ts`, `lib/services/cartService.ts`, `server/src/lib/cartTotals.ts`
 - Auth prompt appears only at checkout, never blocks browsing or cart
-- Single active location: `chicago-il` — 2309-11 W Devon Ave, Chicago, IL 60659 · (877) 742-3222 · https://shadab.io (see `constants/config.ts`)
+- Single active location: `chicago-il` — 2311 W Devon Ave, Chicago, IL 60659 · (877) 742-3222 · https://shadab.io (see `constants/config.ts`)
 
 ## Important Files
 - `constants/theme.ts` — all colors, spacing, fonts, border radius

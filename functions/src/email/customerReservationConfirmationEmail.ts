@@ -2,7 +2,7 @@ import { ResendMailConfig } from './resendConfig'
 
 /** Keep in sync with constants/config.ts (web) — restaurant contact details for customer emails. */
 const RESTAURANT_NAME = 'Shadab Restaurant & Grill'
-const RESTAURANT_ADDRESS = '2309-11 W Devon Ave, Chicago, IL 60659'
+const RESTAURANT_ADDRESS = '2311 W Devon Ave, Chicago, IL 60659'
 const RESTAURANT_PHONE_DISPLAY = '(877) 742-3222'
 const RESTAURANT_WEBSITE = 'https://shadab.io'
 

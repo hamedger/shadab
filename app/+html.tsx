@@ -21,11 +21,11 @@ export default function Root({ children }: PropsWithChildren) {
 
         {/* SEO */}
         <title>Shadab Restaurant & Grill — Authentic Hyderabadi Cuisine, Chicago</title>
-        <meta name="description" content="Grand opening Fri, Oct 16 — breakfast, lunch & dinner buffet, open 24 hours. Authentic Hyderabadi, 100% Zabihah Halal. 2309-11 W Devon Ave, Chicago." />
+        <meta name="description" content="Grand opening Fri, Oct 16 — breakfast, lunch & dinner buffet, open 24 hours. Authentic Hyderabadi, 100% Zabihah Halal. 2311 W Devon Ave, Chicago." />
 
         {/* Open Graph */}
         <meta property="og:title" content="Shadab Restaurant & Grill — Authentic Hyderabadi Cuisine, Chicago" />
-        <meta property="og:description" content="Grand opening Fri, Oct 16 — breakfast, lunch & dinner buffet, open 24 hours. Authentic Hyderabadi, 100% Zabihah Halal. 2309-11 W Devon Ave, Chicago." />
+        <meta property="og:description" content="Grand opening Fri, Oct 16 — breakfast, lunch & dinner buffet, open 24 hours. Authentic Hyderabadi, 100% Zabihah Halal. 2311 W Devon Ave, Chicago." />
         <meta property="og:image" content="https://shadab.io/assets/og-image.jpg" />
         <meta property="og:url" content="https://shadab.io" />
         <meta property="og:type" content="website" />
@@ -33,7 +33,7 @@ export default function Root({ children }: PropsWithChildren) {
         {/* Twitter */}
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="Shadab Restaurant & Grill — Authentic Hyderabadi Cuisine, Chicago" />
-        <meta name="twitter:description" content="Grand opening Fri, Oct 16 — breakfast, lunch & dinner buffet, open 24 hours. Authentic Hyderabadi, 100% Zabihah Halal. 2309-11 W Devon Ave, Chicago." />
+        <meta name="twitter:description" content="Grand opening Fri, Oct 16 — breakfast, lunch & dinner buffet, open 24 hours. Authentic Hyderabadi, 100% Zabihah Halal. 2311 W Devon Ave, Chicago." />
         <meta name="twitter:image" content="https://shadab.io/assets/og-image.jpg" />
 
         <link rel="preconnect" href="https://fonts.googleapis.com" />

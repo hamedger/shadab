@@ -16,8 +16,8 @@ export function defaultBuffetConfigFields(
     // Informational only — the site prices and schedules the buffet from constants/buffetSchedule.ts.
     weekdayLunchPrice: BUFFET_MEALS.lunch.regularPriceCents,
     weekdayDinnerPrice: BUFFET_MEALS.dinner.regularPriceCents,
-    weekendLunchPrice: BUFFET_MEALS.lunch.regularPriceCents,
-    weekendDinnerPrice: BUFFET_MEALS.dinner.regularPriceCents,
+    weekendLunchPrice: BUFFET_MEALS.lunch.weekend?.regularPriceCents ?? BUFFET_MEALS.lunch.regularPriceCents,
+    weekendDinnerPrice: BUFFET_MEALS.dinner.weekend?.regularPriceCents ?? BUFFET_MEALS.dinner.regularPriceCents,
     lunchStart: BUFFET_MEALS.lunch.start,
     lunchEnd: BUFFET_MEALS.lunch.end,
     dinnerStart: BUFFET_MEALS.dinner.start,

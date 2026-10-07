@@ -19,9 +19,15 @@ export interface BuffetMealConfig {
   start: string
   /** 24h HH:mm. An end at or before `start` means the service runs past midnight. */
   end: string
+  /** Every day — or Mon–Thu only when `weekend` is set. */
   regularPriceCents: number
   grandOpeningPriceCents: number
+  /** Fri–Sun prices, when they differ from Mon–Thu. */
+  weekend?: { regularPriceCents: number; grandOpeningPriceCents: number }
 }
+
+/** Fri, Sat, Sun (0=Sun … 6=Sat) — "Grand Lunch" days on the flyer. */
+export const WEEKEND_BUFFET_DAYS = [5, 6, 0]
 
 /** Served every day, Sunday included. */
 export const BUFFET_MEALS: Record<BuffetMeal, BuffetMealConfig> = {
@@ -34,25 +40,26 @@ export const BUFFET_MEALS: Record<BuffetMeal, BuffetMealConfig> = {
   },
   lunch: {
     label: 'Lunch',
-    start: '13:00',
+    start: '13:30',
     end: '16:00',
-    regularPriceCents: 1999,
-    grandOpeningPriceCents: 1299,
+    regularPriceCents: 1399,
+    grandOpeningPriceCents: 1399,
+    weekend: { regularPriceCents: 2499, grandOpeningPriceCents: 1999 },
   },
   dinner: {
     label: 'Dinner',
     start: '18:00',
     end: '01:00',
     regularPriceCents: 2499,
-    grandOpeningPriceCents: 1499,
+    grandOpeningPriceCents: 1999,
   },
 }
 
 /** Grand opening promo week (YYYY-MM-DD, inclusive, America/Chicago). */
 export const GRAND_OPENING_START = '2026-10-16'
 export const GRAND_OPENING_END = '2026-10-22'
-/** Opening day starts with dinner at 6:00 PM — no breakfast or lunch that day. */
-export const OPENING_DAY_FIRST_MEAL: BuffetMeal = 'dinner'
+/** Opening day starts with lunch at 1:30 PM — no breakfast that day. */
+export const OPENING_DAY_FIRST_MEAL: BuffetMeal = 'lunch'
 
 /** Kids under 5 eat free; kids 5–10 pay half the adult buffet price. */
 export const CHILD_FREE_MAX_AGE = 4
@@ -97,9 +104,28 @@ export function isMealServedOn(dateString: string, meal: BuffetMeal): boolean {
   return true
 }
 
-export function getBuffetMealPriceCents(dateString: string, meal: BuffetMeal): number {
+/** 0=Sun … 6=Sat for a YYYY-MM-DD date. */
+export function getDayOfWeek(dateString: string): number {
+  const [y, m, d] = dateString.split('-').map(Number)
+  return new Date(Date.UTC(y, m - 1, d)).getUTCDay()
+}
+
+export function isWeekendBuffetDay(dateString: string): boolean {
+  return WEEKEND_BUFFET_DAYS.includes(getDayOfWeek(dateString))
+}
+
+function getMealPrices(dateString: string, meal: BuffetMeal) {
   const config = BUFFET_MEALS[meal]
-  return isGrandOpeningWindow(dateString) ? config.grandOpeningPriceCents : config.regularPriceCents
+  return config.weekend && isWeekendBuffetDay(dateString) ? config.weekend : config
+}
+
+export function getBuffetMealRegularPriceCents(dateString: string, meal: BuffetMeal): number {
+  return getMealPrices(dateString, meal).regularPriceCents
+}
+
+export function getBuffetMealPriceCents(dateString: string, meal: BuffetMeal): number {
+  const prices = getMealPrices(dateString, meal)
+  return isGrandOpeningWindow(dateString) ? prices.grandOpeningPriceCents : prices.regularPriceCents
 }
 
 export function getChildBuffetPriceCents(adultPriceCents: number): number {
@@ -119,7 +145,7 @@ export function getReservationPartySize(guests: ReservationGuests): number {
 }
 
 /**
- * Chicago sales tax on prepared food outside the downtown MPEA district (2309 W Devon Ave):
+ * Chicago sales tax on prepared food outside the downtown MPEA district (2311 W Devon Ave):
  * 6.25% state + 1.75% Cook County + 1.25% city + 1% RTA + 0.5% Chicago restaurant tax.
  * Keep in sync with TAX_RATE in lib/services/cartService.ts and server/src/lib/cartTotals.ts.
  */

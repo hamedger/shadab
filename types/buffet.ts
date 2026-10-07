@@ -42,6 +42,10 @@ export interface BuffetMealStatus {
   hoursLabel: string
   priceCents: number
   regularPriceCents: number
+  /** "Every day", "Mon – Thu", or "Fri, Sat & Sun". */
+  daysLabel: string
+  /** For meals priced by day, the other days' price, e.g. "Mon – Thu $13.99". */
+  otherDaysPriceLabel: string | null
   /** True during grand opening week when the special beats the regular price. */
   isSpecial: boolean
 }

@@ -1,12 +1,15 @@
 import {
   BuffetMeal,
   BUFFET_MEALS,
+  formatMinutesLabel,
+  getMealWindowMinutes,
   getReservationSlots,
   getReservationStartMs,
   getRestaurantNow,
   addDaysToDateString,
   GRAND_OPENING_START,
   isMealServedOn,
+  OPENING_DAY_FIRST_MEAL,
 } from '../../constants/buffetSchedule'
 
 export interface ReservationInput {
@@ -65,7 +68,7 @@ export function validateReservation(input: ReservationInput): ReservationValidat
     } else if (input.date > maxDate) {
       errors.push(`Book up to ${MAX_ADVANCE_DAYS} days in advance`)
     } else if (input.meal && !isMealServedOn(input.date, input.meal)) {
-      errors.push(`${BUFFET_MEALS[input.meal].label} isn't served that day — opening day starts with dinner at 6:00 PM`)
+      errors.push(`${BUFFET_MEALS[input.meal].label} isn't served that day — opening day starts with ${OPENING_DAY_FIRST_MEAL} at ${formatMinutesLabel(getMealWindowMinutes(OPENING_DAY_FIRST_MEAL).start)}`)
     }
   }
   if (!input.time.trim()) errors.push('Choose a seating time')

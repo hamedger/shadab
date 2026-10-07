@@ -8,7 +8,7 @@ import { ReservationDatePicker } from '../components/reservation/ReservationDate
 import { colors, spacing, borderRadius, fonts } from '../constants/theme'
 import { useReservation } from '../hooks/useReservation'
 import { MAX_ADVANCE_DAYS } from '../lib/services/reservationService'
-import { getMealStatusesForDate } from '../lib/services/buffetService'
+import { formatBuffetTime, getMealStatusesForDate } from '../lib/services/buffetService'
 import {
   BuffetMeal,
   CANCELLATION_POLICY_TEXT,
@@ -20,7 +20,13 @@ import {
   isMealServedOn,
   RESTAURANT_TAX_RATE,
 } from '../constants/reservation'
-import { getBuffetMealPriceCents, getChildBuffetPriceCents, getRestaurantNow } from '../constants/buffetSchedule'
+import {
+  BUFFET_MEALS,
+  getBuffetMealPriceCents,
+  getChildBuffetPriceCents,
+  getRestaurantNow,
+  OPENING_DAY_FIRST_MEAL,
+} from '../constants/buffetSchedule'
 
 const HEADER_IMAGE = require('../assets/flyers/reserve-header.jpg')
 const HEADER_ASPECT = 1024 / 618
@@ -218,7 +224,8 @@ export default function ReservationScreen() {
         </View>
         {mealUnavailable ? (
           <Text style={styles.inlineError}>
-            Opening day ({GRAND_OPENING_START}) starts with dinner at 6:00 PM — pick dinner or another date.
+            Opening day ({GRAND_OPENING_START}) starts with {OPENING_DAY_FIRST_MEAL} at{' '}
+            {formatBuffetTime(BUFFET_MEALS[OPENING_DAY_FIRST_MEAL].start)} — pick a later meal or another date.
           </Text>
         ) : null}
 

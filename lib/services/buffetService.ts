@@ -5,10 +5,13 @@ import {
   BuffetMeal,
   formatMinutesLabel,
   getBuffetMealPriceCents,
+  getBuffetMealRegularPriceCents,
   getMealWindowMinutes,
   getRestaurantNow,
   GRAND_OPENING_START,
+  isGrandOpeningWindow,
   isMealServedOn,
+  isWeekendBuffetDay,
   OPENING_DAY_FIRST_MEAL,
 } from '../../constants/buffetSchedule'
 import { BuffetConfig, BuffetDish, BuffetMealStatus, BuffetStatus } from '../../types/buffet'
@@ -27,16 +30,36 @@ export function formatMealHours(meal: BuffetMeal): string {
   return `${formatBuffetTime(BUFFET_MEALS[meal].start)} – ${formatBuffetTime(BUFFET_MEALS[meal].end)}`
 }
 
+const WEEKDAY_LABEL = 'Mon – Thu'
+const WEEKEND_LABEL = 'Fri, Sat & Sun'
+
+function formatCents(cents: number): string {
+  return `$${(cents / 100).toFixed(2)}`
+}
+
 export function getMealStatusesForDate(dateString: string): BuffetMealStatus[] {
+  const weekend = isWeekendBuffetDay(dateString)
+  const promo = isGrandOpeningWindow(dateString)
   return BUFFET_MEAL_ORDER.map((meal) => {
+    const config = BUFFET_MEALS[meal]
     const priceCents = getBuffetMealPriceCents(dateString, meal)
-    const regularPriceCents = BUFFET_MEALS[meal].regularPriceCents
+    const regularPriceCents = getBuffetMealRegularPriceCents(dateString, meal)
+    let daysLabel = 'Every day'
+    let otherDaysPriceLabel: string | null = null
+    if (config.weekend) {
+      daysLabel = weekend ? WEEKEND_LABEL : WEEKDAY_LABEL
+      const other = weekend ? config : config.weekend
+      const otherCents = promo ? other.grandOpeningPriceCents : other.regularPriceCents
+      otherDaysPriceLabel = `${weekend ? WEEKDAY_LABEL : WEEKEND_LABEL} ${formatCents(otherCents)}`
+    }
     return {
       meal,
-      label: BUFFET_MEALS[meal].label,
+      label: config.label,
       hoursLabel: formatMealHours(meal),
       priceCents,
       regularPriceCents,
+      daysLabel,
+      otherDaysPriceLabel,
       isSpecial: priceCents < regularPriceCents,
     }
   })
@@ -91,7 +114,7 @@ export interface ComputeBuffetStatusOptions {
   now: Date
 }
 
-/** Breakfast 7–12:30, lunch 1–4, dinner 6 PM–1 AM, every day (America/Chicago). */
+/** Breakfast 7–12:30, lunch 1:30–4, dinner 6 PM–1 AM, every day (America/Chicago). */
 export function computeBuffetStatus({
   config,
   now,
