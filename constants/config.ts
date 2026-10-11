@@ -16,6 +16,13 @@ export const ORDERS_NOTIFICATION_EMAIL = 'orders@shadab.com'
 
 export const DEFAULT_LOCATION_ID = 'chicago-il'
 
+/**
+ * Online food ordering (pickup) needs Clover payments. Until Clover is ready, every
+ * "Order Online" entry point shows a coming-soon notice and add-to-cart/checkout are hidden.
+ */
+export const ONLINE_ORDERING_ENABLED = false
+export const ONLINE_ORDERING_COMING_SOON_LABEL = 'Online Ordering Coming Soon'
+
 type HourRange = { open: string; close: string }
 
 /** Open/close pair meaning "open around the clock". */

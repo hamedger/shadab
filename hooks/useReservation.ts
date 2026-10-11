@@ -42,9 +42,9 @@ export function useReservation() {
         // Reservations don't require creating an account — sign in anonymously behind
         // the scenes if the visitor isn't already authenticated.
         if (!auth.currentUser) {
-          const cred = await signInForGuestCheckout(payload.name, payload.email)
+          const cred = await signInForGuestCheckout(payload.name, payload.email ?? '')
           await ensureGuestProfile(cred.user.uid, {
-            email: payload.email,
+            email: payload.email ?? '',
             phone: payload.phone,
             displayName: payload.name,
           })
@@ -75,7 +75,7 @@ export function useReservation() {
           locationId: locationId ?? payload.locationId ?? '',
           customerName: payload.name,
           customerPhone: payload.phone,
-          customerEmail: payload.email,
+          customerEmail: payload.email ?? '',
         })
         redirectToCloverCheckout(href)
       } catch (e) {

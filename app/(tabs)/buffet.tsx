@@ -65,7 +65,7 @@ export default function BuffetScreen() {
       <PageIntro
         eyebrow="Daily Royal Feast"
         title="The Buffet"
-        subtitle="Breakfast, lunch, and a 40+ item dinner buffet — every day of the week. Open 24 hours for dine-in and online orders."
+        subtitle="Breakfast, lunch, and a 40+ item dinner buffet — every day of the week. Open 24 hours for dine-in. Online ordering coming soon."
       />
 
       <View style={styles.statusWrap}>

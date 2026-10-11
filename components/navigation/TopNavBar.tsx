@@ -6,6 +6,7 @@ import { HeaderPhones } from './HeaderPhones'
 import { HalalBadge } from '../brand/HalalBadge'
 import { useCartStore } from '../../store/cartStore'
 import { CartBadge } from '../cart/CartBadge'
+import { ONLINE_ORDERING_COMING_SOON_LABEL, ONLINE_ORDERING_ENABLED } from '../../constants/config'
 import { colors, fonts, spacing } from '../../constants/theme'
 
 const NAV_LINKS: { href: string; label: string }[] = [
@@ -66,16 +67,22 @@ export function TopNavBar() {
         >
           <Ionicons name="person-outline" size={20} color={colors.gold} />
         </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.cartBtn}
-          onPress={() => router.push('/(tabs)/cart' as never)}
-          accessibilityRole="button"
-          accessibilityLabel={`Cart${itemCount > 0 ? `, ${itemCount} items` : ''}`}
-        >
-          <Ionicons name="cart-outline" size={20} color={colors.background} />
-          <Text style={styles.cartLabel}>Order Online</Text>
-          {itemCount > 0 && <CartBadge count={itemCount} />}
-        </TouchableOpacity>
+        {!ONLINE_ORDERING_ENABLED ? (
+          <View style={[styles.cartBtn, styles.cartBtnSoon]} accessibilityRole="text">
+            <Text style={styles.cartLabel}>{ONLINE_ORDERING_COMING_SOON_LABEL}</Text>
+          </View>
+        ) : (
+          <TouchableOpacity
+            style={styles.cartBtn}
+            onPress={() => router.push('/(tabs)/cart' as never)}
+            accessibilityRole="button"
+            accessibilityLabel={`Cart${itemCount > 0 ? `, ${itemCount} items` : ''}`}
+          >
+            <Ionicons name="cart-outline" size={20} color={colors.background} />
+            <Text style={styles.cartLabel}>Order Online</Text>
+            {itemCount > 0 && <CartBadge count={itemCount} />}
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   )
@@ -150,6 +157,7 @@ const styles = StyleSheet.create({
     borderRadius: 9999,
     marginLeft: spacing.xs,
   },
+  cartBtnSoon: { opacity: 0.75 },
   cartLabel: {
     fontFamily: fonts.sansBold,
     fontSize: 12,

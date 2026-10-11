@@ -40,10 +40,21 @@ describe('reservationService validation', () => {
     expect(result.valid).toBe(true)
   })
 
-  it('rejects missing email', () => {
-    const result = validateReservation({ ...validInput, email: '' })
+  it('does not require an email', () => {
+    expect(validateReservation({ ...validInput, email: '' }).valid).toBe(true)
+    expect(validateReservation({ ...validInput, email: undefined }).valid).toBe(true)
+  })
+
+  it('rejects an invalid email when one is given', () => {
+    const result = validateReservation({ ...validInput, email: 'not-an-email' })
     expect(result.valid).toBe(false)
     expect(result.errors[0]).toMatch(/email/i)
+  })
+
+  it('requires a cell phone', () => {
+    const result = validateReservation({ ...validInput, phone: '' })
+    expect(result.valid).toBe(false)
+    expect(result.errors[0]).toMatch(/cell phone/i)
   })
 
   it('requires a meal', () => {

@@ -15,7 +15,8 @@ import {
 export interface ReservationInput {
   userId: string
   name: string
-  email: string
+  /** Optional — the form only asks for a cell phone. */
+  email?: string
   phone: string
   meal: BuffetMeal | ''
   adults: number
@@ -48,9 +49,11 @@ export function validateReservation(input: ReservationInput): ReservationValidat
   const errors: string[] = []
 
   if (!input.name.trim()) errors.push('Name is required')
-  if (!input.email.trim() || !EMAIL_RE.test(input.email.trim())) errors.push('Valid email is required')
   if (!input.phone.trim() || input.phone.replace(/\D/g, '').length < 10) {
-    errors.push('Valid phone number is required')
+    errors.push('Valid cell phone number is required')
+  }
+  if (input.email?.trim() && !EMAIL_RE.test(input.email.trim())) {
+    errors.push('Enter a valid email or leave it blank')
   }
   if (!input.meal) errors.push('Choose breakfast, lunch, or dinner')
 

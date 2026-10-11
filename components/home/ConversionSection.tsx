@@ -2,6 +2,7 @@ import React from 'react'
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
 import { useRouter } from 'expo-router'
 import { OrderOnlinePicker } from '../location/OrderOnlinePicker'
+import { ONLINE_ORDERING_ENABLED } from '../../constants/config'
 import { colors, spacing, borderRadius, fonts } from '../../constants/theme'
 
 interface ConversionCard {
@@ -15,14 +16,16 @@ interface ConversionCard {
 const CONVERSION_CARDS: ConversionCard[] = [
   {
     title: 'Order Online',
-    description: 'Order for pickup — browse our full Hyderabadi menu.',
+    description: ONLINE_ORDERING_ENABLED
+      ? 'Order for pickup — browse our full Hyderabadi menu.'
+      : 'Online ordering is coming soon. Browse our full Hyderabadi menu in the meantime.',
     cta: 'Start Order',
     route: '/(tabs)/menu',
     accent: true,
   },
   {
     title: 'Reserve a Table',
-    description: 'Prepay your buffet online and skip the wait. No reservation = seating not guaranteed.',
+    description: 'Book your buffet table and skip the wait — pay at the restaurant. No reservation = seating not guaranteed.',
     cta: 'Make Reservation',
     route: '/reservation',
   },
@@ -54,7 +57,15 @@ export function ConversionSection() {
         >
           <Text style={styles.cardTitle}>{card.title}</Text>
           <Text style={styles.cardDescription}>{card.description}</Text>
-          {card.accent ? (
+          {card.accent && !ONLINE_ORDERING_ENABLED ? (
+            <TouchableOpacity
+              onPress={() => router.push('/(tabs)/menu' as never)}
+              accessibilityRole="button"
+              accessibilityLabel="Coming soon — view the menu"
+            >
+              <Text style={styles.cardCta}>Coming Soon · View Menu →</Text>
+            </TouchableOpacity>
+          ) : card.accent ? (
             <OrderOnlinePicker>
               {(startOrder) => (
                 <TouchableOpacity

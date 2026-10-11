@@ -16,6 +16,7 @@ import { useSelectedLocation } from '../../hooks/useSelectedLocation'
 import { isMenuItemOrderable } from '../../lib/menuMerge'
 import { useCartStore } from '../../store/cartStore'
 import { resolveMenuItemImage } from '../../lib/menuImages'
+import { ONLINE_ORDERING_COMING_SOON_LABEL, ONLINE_ORDERING_ENABLED } from '../../constants/config'
 import { colors, spacing, borderRadius, fonts } from '../../constants/theme'
 import { Badge } from '../../components/ui/Badge'
 import { HalalBadge } from '../../components/brand/HalalBadge'
@@ -224,7 +225,12 @@ export default function ItemDetailScreen() {
 
       <View style={styles.footer}>
         <View style={[styles.footerInner, { maxWidth: CONTENT_MAX }]}>
-          {orderable ? (
+          {!ONLINE_ORDERING_ENABLED ? (
+            <View style={styles.unavailableFooter}>
+              <Text style={styles.unavailableTitle}>{ONLINE_ORDERING_COMING_SOON_LABEL}</Text>
+              <Text style={styles.unavailableText}>Visit us for dine-in or call ahead to order.</Text>
+            </View>
+          ) : orderable ? (
             <>
               <View style={styles.qtyRow}>
                 <TouchableOpacity

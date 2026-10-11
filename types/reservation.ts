@@ -10,7 +10,7 @@ export interface Reservation {
   id: string
   userId: string
   name: string
-  email: string
+  email?: string
   phone: string
   partySize: number
   /** Older reservations (before the 3-meal buffet) have no meal; treat as dinner. */

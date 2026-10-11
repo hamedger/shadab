@@ -144,7 +144,7 @@ function ReservationCard({
       ) : null}
       {locationName ? <Text style={styles.locationLine}>{locationName}</Text> : null}
       <Text style={styles.contactLine}>
-        {reservation.email} · {reservation.phone}
+        {[reservation.email, reservation.phone].filter(Boolean).join(' · ')}
       </Text>
       {reservation.occasion ? (
         <Text style={styles.noteLine}>Occasion: {reservation.occasion}</Text>

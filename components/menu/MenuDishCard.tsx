@@ -7,6 +7,7 @@ import { MenuItem } from '../../types/menu'
 import { resolveMenuItemImage } from '../../lib/menuImages'
 import { isMenuItemOrderable } from '../../lib/menuMerge'
 import { useCartStore } from '../../store/cartStore'
+import { ONLINE_ORDERING_ENABLED } from '../../constants/config'
 import { colors, spacing, borderRadius, fonts } from '../../constants/theme'
 
 interface MenuDishCardProps {
@@ -77,7 +78,11 @@ export function MenuDishCard({ item, width }: MenuDishCardProps) {
         </View>
       </Pressable>
 
-      {!orderable && quantity === 0 ? (
+      {!ONLINE_ORDERING_ENABLED ? (
+        <View style={styles.qtyBar}>
+          <Text style={styles.unavailableLabel}>Ordering soon</Text>
+        </View>
+      ) : !orderable && quantity === 0 ? (
         <View style={styles.qtyBar}>
           <Text style={styles.unavailableLabel}>Unavailable</Text>
         </View>

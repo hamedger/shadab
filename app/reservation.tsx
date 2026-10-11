@@ -35,7 +35,6 @@ import {
 const HEADER_IMAGE = require('../assets/flyers/reserve-header.jpg')
 const HEADER_ASPECT = 1024 / 618
 
-const OCCASIONS = ['Birthday', 'Anniversary', 'Business Dinner', 'Date Night', 'Family Gathering', 'Other']
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
 
 const STEPS = [
@@ -141,25 +140,20 @@ function Stepper({
 
 export default function ReservationScreen() {
   const { width } = useWindowDimensions()
-  const { submit, loading, error, booked, defaultName, defaultEmail, defaultPhone } = useReservation()
+  const { submit, loading, error, booked, defaultName, defaultPhone } = useReservation()
 
   const [name, setName] = useState(defaultName)
-  const [email, setEmail] = useState(defaultEmail)
   const [phone, setPhone] = useState(defaultPhone)
   const [meal, setMeal] = useState<BuffetMeal | ''>('')
   const [adults, setAdults] = useState(2)
   const [children, setChildren] = useState(0)
-  const [infants, setInfants] = useState(0)
   const [date, setDate] = useState('')
   const [time, setTime] = useState('')
-  const [occasion, setOccasion] = useState('')
-  const [requests, setRequests] = useState('')
 
   useEffect(() => {
     if (defaultName && !name) setName(defaultName)
-    if (defaultEmail && !email) setEmail(defaultEmail)
     if (defaultPhone && !phone) setPhone(defaultPhone)
-  }, [defaultName, defaultEmail, defaultPhone])
+  }, [defaultName, defaultPhone])
 
   const hasDate = DATE_RE.test(date)
   const today = getRestaurantNow().dateString
@@ -180,7 +174,7 @@ export default function ReservationScreen() {
   }, [slots, time])
 
   const mealUnavailable = Boolean(meal && hasDate && !isMealServedOn(date, meal))
-  const guests = { adults, children, infants }
+  const guests = { adults, children, infants: 0 }
   const adultCents = meal ? getBuffetMealPriceCents(priceDate, meal) : 0
   const childCents = getChildBuffetPriceCents(adultCents)
   const subtotal = meal ? getReservationSubtotalCents(priceDate, meal, guests) : null
@@ -191,16 +185,13 @@ export default function ReservationScreen() {
     try {
       await submit({
         name,
-        email,
         phone,
         meal,
         adults,
         children,
-        infants,
+        infants: 0,
         date,
         time,
-        occasion,
-        specialRequests: requests,
       })
       // Prepaid: the hook redirects to Clover Hosted Checkout. Pay at restaurant: `booked` is set.
     } catch {
@@ -314,33 +305,16 @@ export default function ReservationScreen() {
           <View style={styles.guestBox}>
             <Stepper label="Adults" hint="Ages 11+" value={adults} min={1} onChange={setAdults} />
             <Stepper label="Kids 5–10" hint="Half price" value={children} min={0} onChange={setChildren} />
-            <Stepper label="Kids under 5" hint="Free" value={infants} min={0} onChange={setInfants} />
           </View>
 
           <Input label="Full Name *" value={name} onChangeText={setName} placeholder="Your name" />
-          <Input label="Email *" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" placeholder="For confirmation" />
-          <Input label="Phone *" value={phone} onChangeText={setPhone} keyboardType="phone-pad" placeholder="For updates" />
-
-          <Text style={styles.fieldLabel}>Occasion</Text>
-          <View style={styles.occasionGrid}>
-            {OCCASIONS.map((o) => (
-              <TouchableOpacity
-                key={o}
-                style={[styles.occasionChip, occasion === o && styles.chipActive]}
-                onPress={() => setOccasion(occasion === o ? '' : o)}
-              >
-                <Text style={[styles.chipText, occasion === o && styles.chipTextActive]}>{o}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
           <Input
-            label="Special Requests"
-            value={requests}
-            onChangeText={setRequests}
-            placeholder="Dietary needs, allergies, seating preference..."
-            multiline
-            numberOfLines={3}
+            label="Cell Phone *"
+            value={phone}
+            onChangeText={setPhone}
+            keyboardType="phone-pad"
+            autoComplete="tel"
+            placeholder="We'll call or text if anything changes"
           />
 
           <View style={styles.noticeBox}>
@@ -352,7 +326,6 @@ export default function ReservationScreen() {
                 <Text style={styles.noticeText}>
                   {adults} adult{adults === 1 ? '' : 's'} × {formatCents(adultCents)}
                   {children > 0 ? `  ·  ${children} kid${children === 1 ? '' : 's'} 5–10 × ${formatCents(childCents)}` : ''}
-                  {infants > 0 ? `  ·  ${infants} under 5 free` : ''}
                 </Text>
                 <Text style={styles.noticeText}>
                   Subtotal {formatCents(subtotal ?? 0)}  ·  Tax ({(RESTAURANT_TAX_RATE * 100).toFixed(2)}%) {formatCents(tax)}
@@ -556,15 +529,6 @@ const styles = StyleSheet.create({
     fontFamily: fonts.sansBold,
     color: colors.white,
     fontSize: 16,
-  },
-  occasionGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginBottom: spacing.md },
-  occasionChip: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: 6,
-    borderRadius: borderRadius.full,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.backgroundCard,
   },
   chipActive: { backgroundColor: 'rgba(201,162,75,0.15)', borderColor: colors.gold },
   chipText: { fontFamily: fonts.sans, color: colors.whiteMuted, fontSize: 12 },

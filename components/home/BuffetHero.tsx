@@ -13,7 +13,13 @@ import { useRouter } from 'expo-router'
 import { useBuffet } from '../../hooks/useBuffet'
 import { OrderOnlinePicker } from '../location/OrderOnlinePicker'
 import { RESTAURANT_STATS } from '../../constants/home'
-import { APP_TAGLINE, OWNERSHIP_NOTE, RESTAURANT_FULL_NAME } from '../../constants/config'
+import {
+  APP_TAGLINE,
+  ONLINE_ORDERING_COMING_SOON_LABEL,
+  ONLINE_ORDERING_ENABLED,
+  OWNERSHIP_NOTE,
+  RESTAURANT_FULL_NAME,
+} from '../../constants/config'
 import { colors, spacing, borderRadius, fonts } from '../../constants/theme'
 import { blurActiveElementOnWeb } from '../../lib/a11y'
 
@@ -85,21 +91,27 @@ export function BuffetHero() {
         </TouchableOpacity>
 
         <View style={styles.ctaRow}>
-          <OrderOnlinePicker>
-            {(startOrder) => (
-              <TouchableOpacity
-                style={styles.cta}
-                onPress={() => {
-                  blurActiveElementOnWeb()
-                  startOrder()
-                }}
-                accessibilityRole="button"
-                accessibilityLabel="Order online now"
-              >
-                <Text style={styles.ctaText}>Order Online</Text>
-              </TouchableOpacity>
-            )}
-          </OrderOnlinePicker>
+          {!ONLINE_ORDERING_ENABLED ? (
+            <View style={[styles.cta, styles.ctaSoon]} accessibilityRole="text">
+              <Text style={styles.ctaText}>{ONLINE_ORDERING_COMING_SOON_LABEL}</Text>
+            </View>
+          ) : (
+            <OrderOnlinePicker>
+              {(startOrder) => (
+                <TouchableOpacity
+                  style={styles.cta}
+                  onPress={() => {
+                    blurActiveElementOnWeb()
+                    startOrder()
+                  }}
+                  accessibilityRole="button"
+                  accessibilityLabel="Order online now"
+                >
+                  <Text style={styles.ctaText}>Order Online</Text>
+                </TouchableOpacity>
+              )}
+            </OrderOnlinePicker>
+          )}
 
           <TouchableOpacity
             style={styles.ctaOutline}
@@ -243,6 +255,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     borderRadius: borderRadius.full,
   },
+  ctaSoon: { opacity: 0.75 },
   ctaText: {
     fontFamily: fonts.sansBold,
     color: colors.background,

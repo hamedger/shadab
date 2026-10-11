@@ -26,7 +26,12 @@ export type { BuffetMeal, ReservationGuests } from './buffetSchedule'
 export const RESERVATION_PREPAYMENT_ENABLED = false
 
 /** Shown on the reservation form and confirmation when nothing is charged online. */
-export const PAY_AT_RESTAURANT_POLICY_TEXT = `No payment needed now — pay for your buffet at the restaurant. Need to cancel or change? Call us at ${formatPhoneDisplay(RESTAURANT_PHONE)}.`
+/** How long a table is held past the seating time before it is released. */
+export const TABLE_HOLD_MINUTES = 10
+
+export const TABLE_HOLD_TEXT = `We hold your table for ${TABLE_HOLD_MINUTES} minutes past your seating time.`
+
+export const PAY_AT_RESTAURANT_POLICY_TEXT = `No payment needed now — pay for your buffet at the restaurant. ${TABLE_HOLD_TEXT} Need to cancel or change? Call us at ${formatPhoneDisplay(RESTAURANT_PHONE)}.`
 
 /** Plain-language cancellation policy shown before payment and in admin. */
 export const CANCELLATION_POLICY_TEXT = `Free cancellation up to 48 hours before your reservation. Cancellations within 48 hours are charged a 20% fee; the rest is refunded. To cancel, call us at ${formatPhoneDisplay(RESTAURANT_PHONE)}.`
