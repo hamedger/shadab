@@ -2,7 +2,13 @@ import { useState, useCallback } from 'react'
 import { useAuthStore } from '../store/authStore'
 import { useSelectedLocation } from './useSelectedLocation'
 import { validateReservation, ReservationInput } from '../lib/services/reservationService'
-import { startReservationCheckout } from '../lib/services/reservationCheckout'
+import {
+  createPayAtRestaurantReservation,
+  PayAtRestaurantReservation,
+  startReservationCheckout,
+} from '../lib/services/reservationCheckout'
+import { RESERVATION_PREPAYMENT_ENABLED } from '../constants/reservation'
+import { DEFAULT_LOCATION_ID } from '../constants/config'
 import { redirectToCloverCheckout } from '../lib/services/cloverCheckout'
 import { auth } from '../lib/firebase'
 import type { BuffetMeal } from '../constants/buffetSchedule'
@@ -14,6 +20,8 @@ export function useReservation() {
   const { locationId } = useSelectedLocation()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  /** Set once a pay-at-restaurant booking is saved; the screen shows the confirmation. */
+  const [booked, setBooked] = useState<PayAtRestaurantReservation | null>(null)
 
   const submit = useCallback(
     async (input: Omit<ReservationInput, 'userId'>) => {
@@ -42,6 +50,19 @@ export function useReservation() {
           })
         }
 
+        if (!RESERVATION_PREPAYMENT_ENABLED) {
+          const uid = auth.currentUser?.uid
+          if (!uid) throw new Error('Could not start your reservation — please try again.')
+          const reservation = await createPayAtRestaurantReservation({
+            ...payload,
+            userId: uid,
+            meal: payload.meal as BuffetMeal,
+            locationId: locationId || payload.locationId || DEFAULT_LOCATION_ID,
+          })
+          setBooked(reservation)
+          return
+        }
+
         const { href } = await startReservationCheckout({
           meal: payload.meal as BuffetMeal,
           adults: payload.adults,
@@ -58,7 +79,7 @@ export function useReservation() {
         })
         redirectToCloverCheckout(href)
       } catch (e) {
-        const message = e instanceof Error ? e.message : 'Failed to start reservation checkout'
+        const message = e instanceof Error ? e.message : 'Failed to book your reservation'
         setError(message)
         throw e
       } finally {
@@ -72,5 +93,5 @@ export function useReservation() {
   const defaultEmail = userProfile?.email ?? firebaseUser?.email ?? ''
   const defaultPhone = userProfile?.phone ?? ''
 
-  return { submit, loading, error, defaultName, defaultEmail, defaultPhone }
+  return { submit, loading, error, booked, defaultName, defaultEmail, defaultPhone }
 }

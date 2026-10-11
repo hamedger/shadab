@@ -1,7 +1,14 @@
 import { getFunctions, httpsCallable } from 'firebase/functions'
-import app, { auth } from '../firebase'
+import { collection, doc, serverTimestamp, setDoc } from 'firebase/firestore'
+import app, { auth, db } from '../firebase'
 import { getApiUrl } from '../../constants/api'
-import type { BuffetMeal } from '../../constants/buffetSchedule'
+import {
+  BuffetMeal,
+  getReservationStartMs,
+  getReservationSubtotalCents,
+  getReservationTaxCents,
+} from '../../constants/buffetSchedule'
+import type { ReservationInput } from './reservationService'
 
 export interface ReservationCheckoutInput {
   meal: BuffetMeal
@@ -82,4 +89,69 @@ export async function confirmCloverReservationAfterRedirect(
     ...(reservationId?.trim() ? { reservationId: reservationId.trim() } : {}),
   })
   return result.data as ConfirmedCloverReservation
+}
+
+export interface PayAtRestaurantReservation {
+  id: string
+  meal: BuffetMeal
+  date: string
+  time: string
+  partySize: number
+  adults: number
+  children: number
+  infants: number
+  estimatedTotalCents: number
+}
+
+/**
+ * Books a table with no online payment (prepayment switched off). Written straight to Firestore;
+ * the rules only accept this shape for the signed-in user, already confirmed.
+ */
+export async function createPayAtRestaurantReservation(
+  input: ReservationInput & { meal: BuffetMeal; locationId: string },
+): Promise<PayAtRestaurantReservation> {
+  const guests = { adults: input.adults, children: input.children, infants: input.infants }
+  const subtotalCents = getReservationSubtotalCents(input.date, input.meal, guests)
+  const taxCents = getReservationTaxCents(subtotalCents)
+  const estimatedTotalCents = subtotalCents + taxCents
+  const partySize = guests.adults + guests.children + guests.infants
+  const startsAtMs = getReservationStartMs(input.date, input.meal, input.time)
+  if (startsAtMs === null) throw new Error('Choose a seating time for the selected meal')
+
+  const ref = doc(collection(db, 'reservations'))
+  await setDoc(ref, {
+    id: ref.id,
+    userId: input.userId,
+    name: input.name.trim(),
+    email: input.email.trim().toLowerCase(),
+    phone: input.phone.trim(),
+    partySize,
+    meal: input.meal,
+    adults: guests.adults,
+    children: guests.children,
+    infants: guests.infants,
+    date: input.date,
+    time: input.time,
+    startsAtMs,
+    occasion: input.occasion?.trim() ?? '',
+    specialRequests: input.specialRequests?.trim() ?? '',
+    locationId: input.locationId,
+    status: 'confirmed',
+    paymentMethod: 'pay_at_restaurant',
+    subtotalCents,
+    taxCents,
+    estimatedTotalCents,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  })
+
+  return {
+    id: ref.id,
+    meal: input.meal,
+    date: input.date,
+    time: input.time,
+    partySize,
+    ...guests,
+    estimatedTotalCents,
+  }
 }

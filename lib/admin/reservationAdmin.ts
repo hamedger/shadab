@@ -30,9 +30,13 @@ function reservationStartMs(r: Pick<Reservation, 'startsAtMs' | 'date' | 'meal' 
   return getReservationStartMs(r.date, r.meal ?? 'dinner', r.time) ?? Date.now()
 }
 
-/** Refund owed if this reservation were cancelled now (only confirmed = paid). */
+export function isPayAtRestaurant(r: Pick<Reservation, 'paymentMethod'>): boolean {
+  return r.paymentMethod === 'pay_at_restaurant'
+}
+
+/** Refund owed if this reservation were cancelled now (only a confirmed prepaid booking has paid). */
 export function previewCancellation(r: Reservation, nowMs: number = Date.now()): CancellationTerms {
-  const paid = r.status === 'confirmed' ? r.feeCents ?? 0 : 0
+  const paid = r.status === 'confirmed' && !isPayAtRestaurant(r) ? r.feeCents ?? 0 : 0
   return getCancellationTerms(paid, reservationStartMs(r), nowMs)
 }
 

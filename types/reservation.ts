@@ -3,6 +3,9 @@ import type { BuffetMeal } from '../constants/buffetSchedule'
 
 export type ReservationStatus = 'pending' | 'confirmed' | 'cancelled'
 
+/** 'prepaid' = paid via Clover at booking; 'pay_at_restaurant' = booked free, paid at the table. */
+export type ReservationPaymentMethod = 'prepaid' | 'pay_at_restaurant'
+
 export interface Reservation {
   id: string
   userId: string
@@ -23,8 +26,12 @@ export interface Reservation {
   specialRequests?: string
   locationId: string
   status: ReservationStatus
-  /** Amount prepaid at booking (100% of the buffet for the party). */
+  /** Missing on older reservations, which were all prepaid. */
+  paymentMethod?: ReservationPaymentMethod
+  /** Amount prepaid at booking (100% of the buffet for the party). Prepaid reservations only. */
   feeCents?: number
+  /** Buffet + tax quoted at booking for pay-at-restaurant reservations. */
+  estimatedTotalCents?: number
   /** Seating time as epoch ms (server-computed, America/Chicago). */
   startsAtMs?: number
   cancellationFeeCents?: number

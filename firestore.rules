@@ -81,18 +81,59 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // Reservations — created server-side only (paid via Clover checkout, admin SDK bypasses these
-    // rules); this create rule is a fallback safety net, not the primary write path.
+    // Reservations — prepaid ones are created server-side (Clover checkout; admin SDK bypasses
+    // these rules). While prepayment is off, the website books pay-at-restaurant reservations
+    // directly; only that exact shape, for the signed-in user, already confirmed, is allowed.
     match /reservations/{reservationId} {
-      allow create: if request.resource.data.keys().hasAll([
-          'name', 'email', 'phone', 'partySize', 'date', 'time', 'status', 'locationId'
+      allow create: if request.auth != null
+        && request.resource.data.keys().hasOnly([
+          'id', 'userId', 'name', 'email', 'phone', 'partySize', 'meal', 'adults', 'children',
+          'infants', 'date', 'time', 'startsAtMs', 'occasion', 'specialRequests', 'locationId',
+          'status', 'paymentMethod', 'subtotalCents', 'taxCents', 'estimatedTotalCents',
+          'createdAt', 'updatedAt'
         ])
+        && request.resource.data.keys().hasAll([
+          'id', 'userId', 'name', 'email', 'phone', 'partySize', 'meal', 'adults', 'children',
+          'infants', 'date', 'time', 'startsAtMs', 'locationId', 'status', 'paymentMethod',
+          'subtotalCents', 'taxCents', 'estimatedTotalCents', 'createdAt', 'updatedAt'
+        ])
+        && request.resource.data.id == reservationId
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.status == 'confirmed'
+        && request.resource.data.paymentMethod == 'pay_at_restaurant'
         && request.resource.data.name is string
+        && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 100
         && request.resource.data.email is string
+        && request.resource.data.email.size() <= 200
+        && request.resource.data.email.matches('^[^@ ]+@[^@ ]+[.][^@ ]+$')
         && request.resource.data.phone is string
-        && request.resource.data.partySize is int
-        && request.resource.data.partySize >= 1
-        && request.resource.data.status == 'pending';
+        && request.resource.data.phone.size() >= 10 && request.resource.data.phone.size() <= 30
+        && request.resource.data.meal in ['breakfast', 'lunch', 'dinner']
+        && request.resource.data.adults is int && request.resource.data.adults >= 1
+        && request.resource.data.children is int && request.resource.data.children >= 0
+        && request.resource.data.infants is int && request.resource.data.infants >= 0
+        && request.resource.data.partySize == request.resource.data.adults
+          + request.resource.data.children + request.resource.data.infants
+        && request.resource.data.partySize <= 40
+        && request.resource.data.date is string
+        && request.resource.data.date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+        && request.resource.data.time is string
+        && request.resource.data.time.matches('^[0-9]{1,2}:[0-9]{2} (AM|PM)$')
+        && request.resource.data.startsAtMs is int
+        && request.resource.data.startsAtMs > request.time.toMillis()
+        && request.resource.data.startsAtMs < request.time.toMillis() + 32 * 24 * 60 * 60 * 1000
+        && request.resource.data.get('occasion', '') is string
+        && request.resource.data.get('occasion', '').size() <= 100
+        && request.resource.data.get('specialRequests', '') is string
+        && request.resource.data.get('specialRequests', '').size() <= 1000
+        && request.resource.data.locationId is string
+        && request.resource.data.locationId.size() > 0 && request.resource.data.locationId.size() <= 64
+        && request.resource.data.subtotalCents is int && request.resource.data.subtotalCents >= 0
+        && request.resource.data.taxCents is int && request.resource.data.taxCents >= 0
+        && request.resource.data.estimatedTotalCents == request.resource.data.subtotalCents
+          + request.resource.data.taxCents
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
       allow read: if isAdmin()
         || (request.auth != null && resource.data.userId == request.auth.uid);
       // Status, payment, and refund fields are server/admin-only.

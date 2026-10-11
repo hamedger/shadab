@@ -18,8 +18,12 @@ import {
   getReservationTaxCents,
   GRAND_OPENING_START,
   isMealServedOn,
+  PAY_AT_RESTAURANT_POLICY_TEXT,
+  RESERVATION_PREPAYMENT_ENABLED,
   RESTAURANT_TAX_RATE,
 } from '../constants/reservation'
+import { formatReservationNumber } from '../lib/admin/reservationAdmin'
+import type { PayAtRestaurantReservation } from '../lib/services/reservationCheckout'
 import {
   BUFFET_MEALS,
   getBuffetMealPriceCents,
@@ -36,12 +40,60 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
 
 const STEPS = [
   { icon: 'timer-outline' as const, label: 'Quick & easy reservation' },
-  { icon: 'phone-portrait-outline' as const, label: 'Reserve & pay online' },
+  RESERVATION_PREPAYMENT_ENABLED
+    ? { icon: 'phone-portrait-outline' as const, label: 'Reserve & pay online' }
+    : { icon: 'phone-portrait-outline' as const, label: 'Reserve online, pay at the restaurant' },
   { icon: 'restaurant-outline' as const, label: 'Come & enjoy your food right away' },
 ]
 
 function formatCents(cents: number) {
   return `$${(cents / 100).toFixed(2)}`
+}
+
+function formatLongDate(dateString: string): string {
+  const [y, m, d] = dateString.split('-').map(Number)
+  return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString('en-US', {
+    timeZone: 'UTC',
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+  })
+}
+
+/** Shown in place of the form once a pay-at-restaurant reservation is saved. */
+function BookedConfirmation({ reservation }: { reservation: PayAtRestaurantReservation }) {
+  const guests = [
+    `${reservation.adults} adult${reservation.adults === 1 ? '' : 's'}`,
+    reservation.children ? `${reservation.children} kid${reservation.children === 1 ? '' : 's'} 5–10` : '',
+    reservation.infants ? `${reservation.infants} under 5` : '',
+  ]
+    .filter(Boolean)
+    .join(' · ')
+
+  return (
+    <View style={styles.confirmBox} accessibilityLiveRegion="polite">
+      <Ionicons name="checkmark-circle" size={48} color={colors.gold} />
+      <Text style={styles.heading} accessibilityRole="header">
+        Your table is reserved
+      </Text>
+      <Text style={styles.confirmNumber}>Reservation #{formatReservationNumber(reservation.id)}</Text>
+      <View style={styles.confirmDetails}>
+        <Text style={styles.confirmLine}>{BUFFET_MEALS[reservation.meal].label} Buffet</Text>
+        <Text style={styles.confirmLine}>
+          {formatLongDate(reservation.date)} at {reservation.time}
+        </Text>
+        <Text style={styles.confirmLine}>
+          Party of {reservation.partySize} ({guests})
+        </Text>
+        <Text style={styles.noticeTotal}>Estimated total {formatCents(reservation.estimatedTotalCents)}</Text>
+      </View>
+      <Text style={styles.noticeText}>{PAY_AT_RESTAURANT_POLICY_TEXT}</Text>
+      <Text style={styles.noticeText}>
+        At the host stand, give your name or reservation number. Screenshot this page to keep it handy.
+      </Text>
+    </View>
+  )
 }
 
 function Stepper({
@@ -89,7 +141,7 @@ function Stepper({
 
 export default function ReservationScreen() {
   const { width } = useWindowDimensions()
-  const { submit, loading, error, defaultName, defaultEmail, defaultPhone } = useReservation()
+  const { submit, loading, error, booked, defaultName, defaultEmail, defaultPhone } = useReservation()
 
   const [name, setName] = useState(defaultName)
   const [email, setEmail] = useState(defaultEmail)
@@ -150,7 +202,7 @@ export default function ReservationScreen() {
         occasion,
         specialRequests: requests,
       })
-      // On success the hook redirects to Clover Hosted Checkout — nothing left to do here.
+      // Prepaid: the hook redirects to Clover Hosted Checkout. Pay at restaurant: `booked` is set.
     } catch {
       // error surfaced via hook
     }
@@ -167,157 +219,175 @@ export default function ReservationScreen() {
         accessibilityLabel="Shadab Restaurant & Grill — we highly recommend everyone to reserve your table"
       />
 
-      <View style={styles.content}>
-        <Text style={styles.heading} accessibilityRole="header">
-          Reserve Your Table
-        </Text>
-        <Text style={styles.subtitle}>
-          Reserve in advance to guarantee your dining experience and skip the wait — fast, easy, and
-          hassle-free.
-        </Text>
-
-        <View style={styles.warning}>
-          <Ionicons name="calendar-outline" size={16} color={colors.white} />
-          <Text style={styles.warningText}>No reservation = seating not guaranteed</Text>
+      {booked ? (
+        <View style={styles.content}>
+          <BookedConfirmation reservation={booked} />
         </View>
-
-        <View style={styles.steps}>
-          {STEPS.map((step) => (
-            <View key={step.label} style={styles.step}>
-              <Ionicons name={step.icon} size={22} color={colors.gold} />
-              <Text style={styles.stepText}>{step.label}</Text>
-            </View>
-          ))}
-        </View>
-
-        {error && (
-          <View style={styles.errorBox} accessibilityRole="alert">
-            <Text style={styles.errorText}>{error}</Text>
-          </View>
-        )}
-
-        <Text style={styles.fieldLabel}>Choose your buffet *</Text>
-        <View style={styles.mealGrid}>
-          {mealOptions.map((option) => {
-            const selected = meal === option.meal
-            const unavailable = hasDate && !isMealServedOn(date, option.meal)
-            return (
-              <TouchableOpacity
-                key={option.meal}
-                style={[styles.mealCard, selected && styles.chipActive, unavailable && styles.mealCardDisabled]}
-                onPress={() => setMeal(option.meal)}
-                accessibilityRole="button"
-                accessibilityState={{ selected, disabled: unavailable }}
-              >
-                <Text style={[styles.mealName, selected && styles.chipTextActive]}>{option.label}</Text>
-                <Text style={styles.mealHours}>{option.hoursLabel}</Text>
-                <View style={styles.mealPriceRow}>
-                  <Text style={styles.mealPrice}>{formatCents(option.priceCents)}</Text>
-                  {option.isSpecial ? (
-                    <Text style={styles.mealRegular}>{formatCents(option.regularPriceCents)}</Text>
-                  ) : null}
-                </View>
-                {unavailable ? <Text style={styles.mealNote}>Not served this day</Text> : null}
-              </TouchableOpacity>
-            )
-          })}
-        </View>
-        {mealUnavailable ? (
-          <Text style={styles.inlineError}>
-            Opening day ({GRAND_OPENING_START}) starts with {OPENING_DAY_FIRST_MEAL} at{' '}
-            {formatBuffetTime(BUFFET_MEALS[OPENING_DAY_FIRST_MEAL].start)} — pick a later meal or another date.
+      ) : (
+        <View style={styles.content}>
+          <Text style={styles.heading} accessibilityRole="header">
+            Reserve Your Table
           </Text>
-        ) : null}
+          <Text style={styles.subtitle}>
+            Reserve in advance to guarantee your dining experience and skip the wait — fast, easy, and
+            hassle-free.
+          </Text>
 
-        <ReservationDatePicker value={date} onChange={setDate} maxAdvanceDays={MAX_ADVANCE_DAYS} />
+          <View style={styles.warning}>
+            <Ionicons name="calendar-outline" size={16} color={colors.white} />
+            <Text style={styles.warningText}>No reservation = seating not guaranteed</Text>
+          </View>
 
-        <Text style={styles.fieldLabel}>Seating Time *</Text>
-        {meal ? (
-          <View style={styles.timeGrid}>
-            {slots.map((slot) => (
+          <View style={styles.steps}>
+            {STEPS.map((step) => (
+              <View key={step.label} style={styles.step}>
+                <Ionicons name={step.icon} size={22} color={colors.gold} />
+                <Text style={styles.stepText}>{step.label}</Text>
+              </View>
+            ))}
+          </View>
+
+          {error && (
+            <View style={styles.errorBox} accessibilityRole="alert">
+              <Text style={styles.errorText}>{error}</Text>
+            </View>
+          )}
+
+          <Text style={styles.fieldLabel}>Choose your buffet *</Text>
+          <View style={styles.mealGrid}>
+            {mealOptions.map((option) => {
+              const selected = meal === option.meal
+              const unavailable = hasDate && !isMealServedOn(date, option.meal)
+              return (
+                <TouchableOpacity
+                  key={option.meal}
+                  style={[styles.mealCard, selected && styles.chipActive, unavailable && styles.mealCardDisabled]}
+                  onPress={() => setMeal(option.meal)}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected, disabled: unavailable }}
+                >
+                  <Text style={[styles.mealName, selected && styles.chipTextActive]}>{option.label}</Text>
+                  <Text style={styles.mealHours}>{option.hoursLabel}</Text>
+                  <View style={styles.mealPriceRow}>
+                    <Text style={styles.mealPrice}>{formatCents(option.priceCents)}</Text>
+                    {option.isSpecial ? (
+                      <Text style={styles.mealRegular}>{formatCents(option.regularPriceCents)}</Text>
+                    ) : null}
+                  </View>
+                  {unavailable ? <Text style={styles.mealNote}>Not served this day</Text> : null}
+                </TouchableOpacity>
+              )
+            })}
+          </View>
+          {mealUnavailable ? (
+            <Text style={styles.inlineError}>
+              Opening day ({GRAND_OPENING_START}) starts with {OPENING_DAY_FIRST_MEAL} at{' '}
+              {formatBuffetTime(BUFFET_MEALS[OPENING_DAY_FIRST_MEAL].start)} — pick a later meal or another date.
+            </Text>
+          ) : null}
+
+          <ReservationDatePicker value={date} onChange={setDate} maxAdvanceDays={MAX_ADVANCE_DAYS} />
+
+          <Text style={styles.fieldLabel}>Seating Time *</Text>
+          {meal ? (
+            <View style={styles.timeGrid}>
+              {slots.map((slot) => (
+                <TouchableOpacity
+                  key={slot}
+                  style={[styles.timeChip, time === slot && styles.chipActive]}
+                  onPress={() => setTime(slot)}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: time === slot }}
+                >
+                  <Text style={[styles.chipText, time === slot && styles.chipTextActive]}>{slot}</Text>
+                </TouchableOpacity>
+              ))}
+              {slots.length === 0 ? (
+                <Text style={styles.helper}>No seatings left for this meal today — pick another meal or date.</Text>
+              ) : null}
+            </View>
+          ) : (
+            <Text style={[styles.helper, { marginBottom: spacing.md }]}>Choose breakfast, lunch, or dinner first.</Text>
+          )}
+
+          <Text style={styles.fieldLabel}>Guests *</Text>
+          <View style={styles.guestBox}>
+            <Stepper label="Adults" hint="Ages 11+" value={adults} min={1} onChange={setAdults} />
+            <Stepper label="Kids 5–10" hint="Half price" value={children} min={0} onChange={setChildren} />
+            <Stepper label="Kids under 5" hint="Free" value={infants} min={0} onChange={setInfants} />
+          </View>
+
+          <Input label="Full Name *" value={name} onChangeText={setName} placeholder="Your name" />
+          <Input label="Email *" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" placeholder="For confirmation" />
+          <Input label="Phone *" value={phone} onChangeText={setPhone} keyboardType="phone-pad" placeholder="For updates" />
+
+          <Text style={styles.fieldLabel}>Occasion</Text>
+          <View style={styles.occasionGrid}>
+            {OCCASIONS.map((o) => (
               <TouchableOpacity
-                key={slot}
-                style={[styles.timeChip, time === slot && styles.chipActive]}
-                onPress={() => setTime(slot)}
-                accessibilityRole="button"
-                accessibilityState={{ selected: time === slot }}
+                key={o}
+                style={[styles.occasionChip, occasion === o && styles.chipActive]}
+                onPress={() => setOccasion(occasion === o ? '' : o)}
               >
-                <Text style={[styles.chipText, time === slot && styles.chipTextActive]}>{slot}</Text>
+                <Text style={[styles.chipText, occasion === o && styles.chipTextActive]}>{o}</Text>
               </TouchableOpacity>
             ))}
-            {slots.length === 0 ? (
-              <Text style={styles.helper}>No seatings left for this meal today — pick another meal or date.</Text>
-            ) : null}
           </View>
-        ) : (
-          <Text style={[styles.helper, { marginBottom: spacing.md }]}>Choose breakfast, lunch, or dinner first.</Text>
-        )}
 
-        <Text style={styles.fieldLabel}>Guests *</Text>
-        <View style={styles.guestBox}>
-          <Stepper label="Adults" hint="Ages 11+" value={adults} min={1} onChange={setAdults} />
-          <Stepper label="Kids 5–10" hint="Half price" value={children} min={0} onChange={setChildren} />
-          <Stepper label="Kids under 5" hint="Free" value={infants} min={0} onChange={setInfants} />
-        </View>
+          <Input
+            label="Special Requests"
+            value={requests}
+            onChangeText={setRequests}
+            placeholder="Dietary needs, allergies, seating preference..."
+            multiline
+            numberOfLines={3}
+          />
 
-        <Input label="Full Name *" value={name} onChangeText={setName} placeholder="Your name" />
-        <Input label="Email *" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" placeholder="For confirmation" />
-        <Input label="Phone *" value={phone} onChangeText={setPhone} keyboardType="phone-pad" placeholder="For updates" />
-
-        <Text style={styles.fieldLabel}>Occasion</Text>
-        <View style={styles.occasionGrid}>
-          {OCCASIONS.map((o) => (
-            <TouchableOpacity
-              key={o}
-              style={[styles.occasionChip, occasion === o && styles.chipActive]}
-              onPress={() => setOccasion(occasion === o ? '' : o)}
-            >
-              <Text style={[styles.chipText, occasion === o && styles.chipTextActive]}>{o}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        <Input
-          label="Special Requests"
-          value={requests}
-          onChangeText={setRequests}
-          placeholder="Dietary needs, allergies, seating preference..."
-          multiline
-          numberOfLines={3}
-        />
-
-        <View style={styles.noticeBox}>
-          <Text style={styles.noticeTitle}>Pay for your buffet now</Text>
-          {meal ? (
-            <>
-              <Text style={styles.noticeText}>
-                {adults} adult{adults === 1 ? '' : 's'} × {formatCents(adultCents)}
-                {children > 0 ? `  ·  ${children} kid${children === 1 ? '' : 's'} 5–10 × ${formatCents(childCents)}` : ''}
-                {infants > 0 ? `  ·  ${infants} under 5 free` : ''}
-              </Text>
-              <Text style={styles.noticeText}>
-                Subtotal {formatCents(subtotal ?? 0)}  ·  Tax ({(RESTAURANT_TAX_RATE * 100).toFixed(2)}%) {formatCents(tax)}
-              </Text>
-              <Text style={styles.noticeTotal}>Total {formatCents(total ?? 0)}</Text>
-            </>
-          ) : (
-            <Text style={styles.noticeText}>
-              Your reservation prepays the full buffet price for your party plus tax, paid securely by Clover.
+          <View style={styles.noticeBox}>
+            <Text style={styles.noticeTitle}>
+              {RESERVATION_PREPAYMENT_ENABLED ? 'Pay for your buffet now' : 'Estimated buffet total — pay at the restaurant'}
             </Text>
-          )}
-          <Text style={styles.noticeText}>{CANCELLATION_POLICY_TEXT}</Text>
-        </View>
+            {meal ? (
+              <>
+                <Text style={styles.noticeText}>
+                  {adults} adult{adults === 1 ? '' : 's'} × {formatCents(adultCents)}
+                  {children > 0 ? `  ·  ${children} kid${children === 1 ? '' : 's'} 5–10 × ${formatCents(childCents)}` : ''}
+                  {infants > 0 ? `  ·  ${infants} under 5 free` : ''}
+                </Text>
+                <Text style={styles.noticeText}>
+                  Subtotal {formatCents(subtotal ?? 0)}  ·  Tax ({(RESTAURANT_TAX_RATE * 100).toFixed(2)}%) {formatCents(tax)}
+                </Text>
+                <Text style={styles.noticeTotal}>Total {formatCents(total ?? 0)}</Text>
+              </>
+            ) : (
+              <Text style={styles.noticeText}>
+                {RESERVATION_PREPAYMENT_ENABLED
+                  ? 'Your reservation prepays the full buffet price for your party plus tax, paid securely by Clover.'
+                  : 'Choose a meal to see the estimated buffet price for your party plus tax.'}
+              </Text>
+            )}
+            <Text style={styles.noticeText}>
+              {RESERVATION_PREPAYMENT_ENABLED ? CANCELLATION_POLICY_TEXT : PAY_AT_RESTAURANT_POLICY_TEXT}
+            </Text>
+          </View>
 
-        <Button
-          label={total != null ? `Continue to Payment · ${formatCents(total)}` : 'Continue to Payment'}
-          onPress={handleSubmit}
-          loading={loading}
-          disabled={mealUnavailable}
-          fullWidth
-          size="lg"
-          style={{ marginTop: spacing.md }}
-        />
-      </View>
+          <Button
+            label={
+              RESERVATION_PREPAYMENT_ENABLED
+                ? total != null
+                  ? `Continue to Payment · ${formatCents(total)}`
+                  : 'Continue to Payment'
+                : 'Reserve Table'
+            }
+            onPress={handleSubmit}
+            loading={loading}
+            disabled={mealUnavailable}
+            fullWidth
+            size="lg"
+            style={{ marginTop: spacing.md }}
+          />
+        </View>
+      )}
     </ScrollView>
   )
 }
@@ -392,6 +462,18 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 19,
   },
+  confirmBox: {
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.backgroundCard,
+    borderWidth: 1,
+    borderColor: colors.goldDark,
+    borderRadius: borderRadius.md,
+    padding: spacing.lg,
+  },
+  confirmNumber: { fontFamily: fonts.sansBold, color: colors.gold, fontSize: 18, letterSpacing: 1 },
+  confirmDetails: { alignItems: 'center', gap: spacing.xs, marginVertical: spacing.sm },
+  confirmLine: { fontFamily: fonts.sansMedium, color: colors.white, fontSize: 15, textAlign: 'center' },
   noticeTotal: {
     fontFamily: fonts.sansBold,
     color: colors.white,

@@ -9,6 +9,7 @@ import { Button } from '../../components/ui/Button'
 import {
   checkInReservation,
   formatReservationNumber,
+  isPayAtRestaurant,
   getCurrentServiceDate,
   getReservationSortMinutes,
   matchesReservationSearch,
@@ -57,6 +58,8 @@ function ArrivalCard({ reservation }: { reservation: Reservation }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  const payAtRestaurant = isPayAtRestaurant(reservation)
+  // Confirmed = ready to seat: prepaid via Clover, or booked to pay at the table.
   const paid = reservation.status === 'confirmed'
   const cancelled = reservation.status === 'cancelled'
   const checkedIn = Boolean(reservation.checkedInAt)
@@ -76,7 +79,12 @@ function ArrivalCard({ reservation }: { reservation: Reservation }) {
   let badge: { label: string; color: string }
   if (cancelled) badge = { label: 'CANCELLED', color: colors.error }
   else if (checkedIn) badge = { label: `CHECKED IN ${formatCheckInTime(reservation)}`, color: colors.greenLight }
-  else if (paid) badge = { label: `PAID ${formatCents(reservation.feeCents ?? 0)}`, color: colors.gold }
+  else if (paid && payAtRestaurant) {
+    badge = {
+      label: `PAY AT TABLE${reservation.estimatedTotalCents != null ? ` ~${formatCents(reservation.estimatedTotalCents)}` : ''}`,
+      color: colors.gold,
+    }
+  } else if (paid) badge = { label: `PAID ${formatCents(reservation.feeCents ?? 0)}`, color: colors.gold }
   else badge = { label: 'NOT PAID', color: colors.error }
 
   return (

@@ -15,6 +15,7 @@ import { SimpleFilterBar } from '../../components/admin/SimpleFilterBar'
 import {
   cancelReservationWithPolicy,
   formatReservationNumber,
+  isPayAtRestaurant,
   previewCancellation,
   RESERVATION_STATUS_LABELS,
   updateReservationStatus,
@@ -124,7 +125,12 @@ function ReservationCard({
         {mealLabel} · {reservation.date} at {reservation.time} · Party of {reservation.partySize}
       </Text>
       {guestBreakdown ? <Text style={styles.noteLine}>{guestBreakdown}</Text> : null}
-      {reservation.feeCents != null ? (
+      {isPayAtRestaurant(reservation) ? (
+        <Text style={styles.noteLine}>
+          Pay at restaurant
+          {reservation.estimatedTotalCents != null ? ` · est. ${formatCents(reservation.estimatedTotalCents)}` : ''}
+        </Text>
+      ) : reservation.feeCents != null ? (
         <Text style={styles.noteLine}>
           Prepaid {formatCents(reservation.feeCents)}
           {reservation.status === 'cancelled' && reservation.refundCents != null
@@ -179,7 +185,9 @@ function ReservationCard({
           {cancelPreview ? (
             <>
               <Text style={styles.noteLine}>
-                {cancelPreview.isLateCancellation
+                {isPayAtRestaurant(reservation)
+                  ? 'Nothing was prepaid — no refund needed.'
+                  : cancelPreview.isLateCancellation
                   ? `Within 48 hours: keep ${formatCents(cancelPreview.feeCents)} (20%), refund ${formatCents(cancelPreview.refundCents)}.`
                   : `More than 48 hours out: full refund of ${formatCents(cancelPreview.refundCents)}.`}
               </Text>
