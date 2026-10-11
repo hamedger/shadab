@@ -17,6 +17,7 @@ import { useAdminOrders } from '../../hooks/useAdminOrders'
 import { isPaidOrder } from '../../lib/admin/orderAdmin'
 import { Order } from '../../types/order'
 import { AdminOrderAlerts } from './AdminOrderAlerts'
+import { AdminReservationAlerts } from './AdminReservationAlerts'
 import { AdminBuffetRefillAlerts } from './AdminBuffetRefillAlerts'
 import { colors, spacing, borderRadius, fonts } from '../../constants/theme'
 
@@ -166,6 +167,7 @@ export function AdminShell({ children }: AdminShellProps) {
           customerProfiles={customerProfiles}
         />
         <AdminBuffetRefillAlerts />
+        <AdminReservationAlerts />
         {children}
       </View>
     </View>

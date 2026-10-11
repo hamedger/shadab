@@ -8,6 +8,11 @@ export function playBuffetRefillChime(): void {
   playToneSequence([440, 523.25, 440, 523.25], { noteGap: 0.18, noteDuration: 0.35 })
 }
 
+/** Bright descending bell for new table reservations — distinct from orders and refills. */
+export function playReservationChime(): void {
+  playToneSequence([1318.51, 987.77, 1318.51], { noteGap: 0.16, noteDuration: 0.45 })
+}
+
 function playToneSequence(
   notes: number[],
   opts: { noteGap: number; noteDuration: number },

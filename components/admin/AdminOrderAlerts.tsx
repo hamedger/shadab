@@ -63,7 +63,7 @@ export function AdminOrderAlerts({ orders, loading, customerProfiles }: AdminOrd
     return (
       <View style={[styles.banner, styles.bannerOk]}>
         <Text style={styles.bannerText}>
-          Kitchen alerts on — chime + notifications for new orders and buffet refills.
+          Kitchen alerts on — chime + notifications for new orders, reservations, and buffet refills.
         </Text>
         <TouchableOpacity style={styles.buttonSecondary} onPress={() => playKitchenChime()}>
           <Text style={styles.buttonSecondaryText}>Test chime</Text>
@@ -86,8 +86,8 @@ export function AdminOrderAlerts({ orders, loading, customerProfiles }: AdminOrd
   return (
     <View style={styles.banner}>
       <Text style={styles.bannerText}>
-        Tap Enable to allow kitchen chimes and browser notifications for new paid orders and buffet
-        refills.
+        Tap Enable to allow kitchen chimes and browser notifications for new paid orders, table
+        reservations, and buffet refills.
       </Text>
       <TouchableOpacity style={styles.button} onPress={() => void enableNotifications()}>
         <Text style={styles.buttonText}>Enable</Text>
