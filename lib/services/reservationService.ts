@@ -10,6 +10,8 @@ import {
   GRAND_OPENING_START,
   isMealServedOn,
   OPENING_DAY_FIRST_MEAL,
+  BREAKFAST_AND_24_HOURS_START_LABEL,
+  BREAKFAST_START_DATE,
 } from '../../constants/buffetSchedule'
 
 export interface ReservationInput {
@@ -70,6 +72,8 @@ export function validateReservation(input: ReservationInput): ReservationValidat
       )
     } else if (input.date > maxDate) {
       errors.push(`Book up to ${MAX_ADVANCE_DAYS} days in advance`)
+    } else if (input.meal === 'breakfast' && input.date < BREAKFAST_START_DATE) {
+      errors.push(`Breakfast buffet starts ${BREAKFAST_AND_24_HOURS_START_LABEL} — pick lunch, dinner, or a later date`)
     } else if (input.meal && !isMealServedOn(input.date, input.meal)) {
       errors.push(`${BUFFET_MEALS[input.meal].label} isn't served that day — opening day starts with ${OPENING_DAY_FIRST_MEAL} at ${formatMinutesLabel(getMealWindowMinutes(OPENING_DAY_FIRST_MEAL).start)}`)
     }

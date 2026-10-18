@@ -13,6 +13,8 @@ import {
   isMealServedOn,
   isWeekendBuffetDay,
   OPENING_DAY_FIRST_MEAL,
+  BREAKFAST_AND_24_HOURS_START_LABEL,
+  BREAKFAST_START_DATE,
 } from '../../constants/buffetSchedule'
 import { BuffetConfig, BuffetDish, BuffetMealStatus, BuffetStatus } from '../../types/buffet'
 
@@ -56,6 +58,10 @@ export function getMealStatusesForDate(dateString: string): BuffetMealStatus[] {
       meal,
       label: config.label,
       hoursLabel: formatMealHours(meal),
+      startsOnLabel:
+        meal === 'breakfast' && getRestaurantNow().dateString < BREAKFAST_START_DATE
+          ? `Starts ${BREAKFAST_AND_24_HOURS_START_LABEL}`
+          : null,
       priceCents,
       regularPriceCents,
       daysLabel,
@@ -114,7 +120,7 @@ export interface ComputeBuffetStatusOptions {
   now: Date
 }
 
-/** Breakfast 7–12:30, lunch 1:30–4, dinner 6 PM–1 AM, every day (America/Chicago). */
+/** Breakfast 7–12:30 (from Oct 21), lunch 2–5, dinner 7 PM–midnight, every day (America/Chicago). */
 export function computeBuffetStatus({
   config,
   now,

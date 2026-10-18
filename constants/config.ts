@@ -1,6 +1,10 @@
+import { getRestaurantNow, OPEN_24_HOURS_START_DATE } from './buffetSchedule'
+
 export const APP_NAME = 'Shadab'
 export const RESTAURANT_FULL_NAME = 'Shadab Restaurant & Grill'
 export const APP_TAGLINE = 'Authentic Hyderabadi Cuisine'
+/** Browser tab / share title. */
+export const SITE_TITLE = 'Shadab — Where Hyderabad Meets Chicago'
 export const OWNERSHIP_NOTE = 'Under New Ownership · Deccan Group of Restaurants'
 export const RESTAURANT_PHONE = '+18777423222'
 export const RESTAURANT_STREET = '2311 W Devon Ave'
@@ -27,14 +31,24 @@ type HourRange = { open: string; close: string }
 
 /** Open/close pair meaning "open around the clock". */
 export const OPEN_24_HOURS: HourRange = { open: '00:00', close: '23:59' }
+/** Until 24-hour service starts: lunch through dinner, 2:00 PM to midnight. */
+export const PRE_24_HOURS: HourRange = { open: '14:00', close: '23:59' }
 
 export function isOpen24Hours(hours: HourRange): boolean {
   return hours.open === OPEN_24_HOURS.open && hours.close === OPEN_24_HOURS.close
 }
 
+/** True on/after the date 24-hour service begins (defaults to today in Chicago). */
+export function isOpen24HoursOn(dateString: string = getRestaurantNow().dateString): boolean {
+  return dateString >= OPEN_24_HOURS_START_DATE
+}
+
+/** Hours in effect when the page loaded: 2 PM–midnight before Oct 21, 24 hours after. */
+const CURRENT_HOURS: HourRange = isOpen24HoursOn() ? OPEN_24_HOURS : PRE_24_HOURS
+
 /** Per-location dine-in hours (24h HH:mm), open daily. */
 export const LOCATION_DINE_IN_HOURS: Record<string, HourRange> = {
-  'chicago-il': { ...OPEN_24_HOURS },
+  'chicago-il': { ...CURRENT_HOURS },
 }
 
 /** Build a 7-day hours map with the same open/close every day. */
@@ -55,7 +69,7 @@ export const BUSINESS_HOURS = buildWeeklyLocationHours(
 
 /** Per-location pickup/delivery hours (24h HH:mm). */
 export const LOCATION_ORDER_FULFILLMENT_HOURS: Record<string, HourRange> = {
-  'chicago-il': { ...OPEN_24_HOURS },
+  'chicago-il': { ...CURRENT_HOURS },
 }
 
 /** Max distance self-delivery drivers will travel; beyond this, delivery is declined. */
@@ -65,7 +79,7 @@ export const FREE_DELIVERY_RADIUS_MILES = 1
 export const DELIVERY_RATE_CENTS_PER_MILE = 100
 export const DELIVERY_MINIMUM_SUBTOTAL_CENTS = 2000
 /** Daily delivery window (self-delivery drivers), same at every location. */
-export const DELIVERY_FULFILLMENT_HOURS: HourRange = { ...OPEN_24_HOURS }
+export const DELIVERY_FULFILLMENT_HOURS: HourRange = { ...CURRENT_HOURS }
 
 /**
  * Self-delivery UI + checkout flow.

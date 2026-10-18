@@ -72,7 +72,7 @@ export function formatReservationNumber(id: string): string {
   return id.slice(-6).toUpperCase()
 }
 
-/** Dinner runs to 1:00 AM, so until 3:00 AM the host stand is still on the previous day's service. */
+/** Dinner runs to midnight; until 3:00 AM the host stand stays on the previous day's service for late arrivals. */
 export const SERVICE_DAY_ROLLOVER_MINUTES = 3 * 60
 
 export function getCurrentServiceDate(now: Date = new Date()): string {

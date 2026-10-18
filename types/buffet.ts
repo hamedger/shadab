@@ -40,6 +40,8 @@ export interface BuffetMealStatus {
   label: string
   /** e.g. "7:00 AM – 12:30 PM" */
   hoursLabel: string
+  /** e.g. "Starts Wed, Oct 21" for breakfast before it launches. */
+  startsOnLabel?: string | null
   priceCents: number
   regularPriceCents: number
   /** "Every day", "Mon – Thu", or "Fri, Sat & Sun". */

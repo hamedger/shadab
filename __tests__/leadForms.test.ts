@@ -74,14 +74,16 @@ describe('reservationService validation', () => {
     expect(result.valid).toBe(false)
   })
 
-  it('accepts after-midnight dinner seatings and Sundays', () => {
-    expect(validateReservation({ ...validInput, date: '2026-10-18', time: '12:30 AM' }).valid).toBe(true)
+  it('accepts the last dinner seating (11:30 PM) and Sundays', () => {
+    expect(validateReservation({ ...validInput, date: '2026-10-18', time: '11:30 PM' }).valid).toBe(true)
+    expect(validateReservation({ ...validInput, date: '2026-10-18', time: '12:00 AM' }).valid).toBe(false)
   })
 
-  it('rejects breakfast on opening day (dinner starts 6 PM)', () => {
-    const result = validateReservation({ ...validInput, date: '2026-10-16', meal: 'breakfast', time: '8:00 AM' })
+  it('rejects breakfast before it starts on Wed, Oct 21', () => {
+    const result = validateReservation({ ...validInput, date: '2026-10-20', meal: 'breakfast', time: '8:00 AM' })
     expect(result.valid).toBe(false)
-    expect(result.errors[0]).toMatch(/opening day/i)
+    expect(result.errors[0]).toMatch(/Breakfast buffet starts Wed, Oct 21/)
+    expect(validateReservation({ ...validInput, date: '2026-10-21', meal: 'breakfast', time: '8:00 AM' }).valid).toBe(true)
   })
 
   it('rejects dates before opening day', () => {

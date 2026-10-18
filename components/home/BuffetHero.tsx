@@ -20,6 +20,8 @@ import {
   OWNERSHIP_NOTE,
   RESTAURANT_FULL_NAME,
 } from '../../constants/config'
+import { isOpen24HoursOn } from '../../constants/config'
+import { BREAKFAST_AND_24_HOURS_START_LABEL } from '../../constants/buffetSchedule'
 import { colors, spacing, borderRadius, fonts } from '../../constants/theme'
 import { blurActiveElementOnWeb } from '../../lib/a11y'
 
@@ -77,8 +79,9 @@ export function BuffetHero() {
           Taste the{'\n'}Hyderabadi{'\n'}Heritage
         </Text>
         <Text style={styles.subtitle}>
-          Authentic dum biryani, haleem, and royal feasts — breakfast, lunch, and dinner buffets
-          every day, and open 24 hours on Devon Ave.
+          {isOpen24HoursOn()
+            ? 'Authentic dum biryani, haleem, and royal feasts — breakfast, lunch, and dinner buffets every day, and open 24 hours on Devon Ave.'
+            : `Authentic dum biryani, haleem, and royal feasts — lunch and dinner buffets every day on Devon Ave. Breakfast buffet and 24-hour service start ${BREAKFAST_AND_24_HOURS_START_LABEL}.`}
         </Text>
 
         <TouchableOpacity

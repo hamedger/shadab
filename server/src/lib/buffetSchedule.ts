@@ -40,16 +40,17 @@ export const BUFFET_MEALS: Record<BuffetMeal, BuffetMealConfig> = {
   },
   lunch: {
     label: 'Lunch',
-    start: '13:30',
-    end: '16:00',
+    start: '14:00',
+    end: '17:00',
     regularPriceCents: 1399,
     grandOpeningPriceCents: 1399,
     weekend: { regularPriceCents: 2499, grandOpeningPriceCents: 1999 },
   },
   dinner: {
     label: 'Dinner',
-    start: '18:00',
-    end: '01:00',
+    // Closes at midnight.
+    start: '19:00',
+    end: '00:00',
     regularPriceCents: 2499,
     grandOpeningPriceCents: 1999,
   },
@@ -58,8 +59,12 @@ export const BUFFET_MEALS: Record<BuffetMeal, BuffetMealConfig> = {
 /** Grand opening promo week (YYYY-MM-DD, inclusive, America/Chicago). */
 export const GRAND_OPENING_START = '2026-10-16'
 export const GRAND_OPENING_END = '2026-10-22'
-/** Opening day starts with lunch at 1:30 PM — no breakfast that day. */
+/** Opening day starts with lunch — no breakfast that day. */
 export const OPENING_DAY_FIRST_MEAL: BuffetMeal = 'lunch'
+/** Breakfast buffet and 24-hour service begin Wednesday, Oct 21 (YYYY-MM-DD, America/Chicago). */
+export const BREAKFAST_START_DATE = '2026-10-21'
+export const OPEN_24_HOURS_START_DATE = '2026-10-21'
+export const BREAKFAST_AND_24_HOURS_START_LABEL = 'Wed, Oct 21'
 
 /** Kids under 5 eat free; kids 5–10 pay half the adult buffet price. */
 export const CHILD_FREE_MAX_AGE = 4
@@ -95,9 +100,10 @@ export function hasGrandOpeningEnded(dateString: string): boolean {
   return dateString > GRAND_OPENING_END
 }
 
-/** False before opening day, and for meals before the first one on opening day. */
+/** False before opening day, for meals before the first one on opening day, and for breakfast before it starts. */
 export function isMealServedOn(dateString: string, meal: BuffetMeal): boolean {
   if (dateString < GRAND_OPENING_START) return false
+  if (meal === 'breakfast' && dateString < BREAKFAST_START_DATE) return false
   if (dateString === GRAND_OPENING_START) {
     return BUFFET_MEAL_ORDER.indexOf(meal) >= BUFFET_MEAL_ORDER.indexOf(OPENING_DAY_FIRST_MEAL)
   }

@@ -4,10 +4,12 @@ import {
   DEFAULT_LOCATION_ID,
   DEFAULT_PICKUP_PREP_BUFFER_MINUTES,
   isOpen24Hours,
+  isOpen24HoursOn,
   LOCATION_DINE_IN_HOURS,
   LOCATION_ORDER_FULFILLMENT_HOURS,
 } from '../constants/config'
 import { STATIC_LOCATIONS } from '../constants/staticLocations'
+import { BREAKFAST_AND_24_HOURS_START_LABEL } from '../constants/buffetSchedule'
 import { Location, LocationAddress, LocationHours, OrderFulfillmentHours } from '../types/location'
 
 /** Minutes before earliest same-day pickup slot for a store. */
@@ -20,12 +22,16 @@ export function getPickupPrepBufferMinutes(location: Location | null | undefined
 }
 
 function formatHourMinuteLabel(hhmm: string): string {
+  if (hhmm === '23:59') return 'Midnight'
   const parsed = parse(hhmm, 'HH:mm', new Date())
   return format(parsed, 'h:mm a')
 }
 
 export function formatDineInHoursLabel(hours: LocationHours): string {
   if (isOpen24Hours(hours)) return 'Open 24 Hours · Every Day'
+  if (!isOpen24HoursOn()) {
+    return `Open Daily · ${formatHourMinuteLabel(hours.open)} – ${formatHourMinuteLabel(hours.close)} · 24 hours from ${BREAKFAST_AND_24_HOURS_START_LABEL}`
+  }
   return `Open Daily · ${formatHourMinuteLabel(hours.open)} – ${formatHourMinuteLabel(hours.close)}`
 }
 

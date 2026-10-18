@@ -5,15 +5,15 @@ import { useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import {
   BUFFET_HIGHLIGHTS,
-  BUFFET_MEALS,
   GRAND_OPENING_START,
   hasGrandOpeningEnded,
   isGrandOpeningWindow,
   MUTTON_SPECIALTIES,
-  OPENING_DAY_FIRST_MEAL,
 } from '../../constants/buffet'
-import { formatBuffetTime, getMealStatusesForDate } from '../../lib/services/buffetService'
+import { getMealStatusesForDate } from '../../lib/services/buffetService'
 import { BuffetPriceCards } from '../buffet/BuffetPriceCards'
+import { isOpen24HoursOn } from '../../constants/config'
+import { BREAKFAST_AND_24_HOURS_START_LABEL } from '../../constants/buffetSchedule'
 import { colors, spacing, borderRadius, fonts } from '../../constants/theme'
 
 const HEADER_IMAGE = require('../../assets/flyers/grand-opening-header.jpg')
@@ -61,10 +61,12 @@ export function GrandOpeningBanner() {
             </View>
           </View>
           <View style={styles.fact}>
-            <Ionicons name="time-outline" size={22} color={colors.gold} />
+            <Ionicons name="sunny-outline" size={22} color={colors.gold} />
             <View>
-              <Text style={styles.factLabel}>Grand opening</Text>
-              <Text style={styles.factValue}>{formatBuffetTime(BUFFET_MEALS[OPENING_DAY_FIRST_MEAL].start)}</Text>
+              <Text style={styles.factLabel}>
+                {isOpen24HoursOn() ? 'Now serving' : `Starting ${BREAKFAST_AND_24_HOURS_START_LABEL}`}
+              </Text>
+              <Text style={styles.factValue}>Breakfast & 24-hour service</Text>
             </View>
           </View>
           <View style={styles.fact}>

@@ -16,6 +16,8 @@ import {
   MUTTON_SPECIALTIES,
   STUDENT_BUFFET_DISCOUNT_PERCENT,
 } from '../../constants/buffet'
+import { isOpen24HoursOn } from '../../constants/config'
+import { BREAKFAST_AND_24_HOURS_START_LABEL } from '../../constants/buffetSchedule'
 import { colors, spacing, borderRadius, fonts } from '../../constants/theme'
 
 function StatusBadge({ isOpen, label }: { isOpen: boolean; label: string }) {
@@ -65,7 +67,11 @@ export default function BuffetScreen() {
       <PageIntro
         eyebrow="Daily Royal Feast"
         title="The Buffet"
-        subtitle="Breakfast, lunch, and a 40+ item dinner buffet — every day of the week. Open 24 hours for dine-in. Online ordering coming soon."
+        subtitle={
+          isOpen24HoursOn()
+            ? 'Breakfast, lunch, and a 40+ item dinner buffet — every day of the week. Open 24 hours for dine-in. Online ordering coming soon.'
+            : `Lunch 2–5 PM and a 40+ item dinner buffet 7 PM–midnight, every day. Breakfast buffet and 24-hour service start ${BREAKFAST_AND_24_HOURS_START_LABEL}. Online ordering coming soon.`
+        }
       />
 
       <View style={styles.statusWrap}>

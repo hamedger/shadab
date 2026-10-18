@@ -22,9 +22,9 @@ Forked from the Deccan Bawarchi codebase and re-themed; feature set is the same 
 - Loyalty points awarded **server-side only** in Cloud Function when an order reaches its terminal status: `'delivered'` for delivery orders, `'picked_up'` for pickup orders (pickup has no separate delivery event)
 - All Firestore writes involving money use **transactions**
 - Clover credentials **never** in client code — `server/` and Cloud Functions only
-- Delivery fee is **recomputed server-side** at order creation (never trusted from the client); delivery-only $20 minimum order. Dine-in, pickup, and delivery are **open 24 hours**
+- Delivery fee is **recomputed server-side** at order creation (never trusted from the client); delivery-only $20 minimum order. Hours are 2:00 PM–midnight until **24-hour service starts Wed Oct 21** (`OPEN_24_HOURS_START_DATE`; `constants/config.ts` picks the hours at page load)
 - Buffet meals, prices, grand opening week (Fri Oct 16 – Thu Oct 22, 2026), reservation pricing, and cancellation policy live in `constants/buffetSchedule.ts` — an identical copy is in `server/src/lib/buffetSchedule.ts`; edit both
-- Buffet runs every day in **America/Chicago**: breakfast 7:00–12:30 ($9.99), lunch 1:30–4:00 (Mon–Thu $13.99; Fri–Sun $24.99, $19.99 opening week), dinner 6:00 PM–1:00 AM ($24.99, $19.99 opening week). Dinner after midnight belongs to the previous day's service. Opening day (Fri Oct 16) starts with lunch at 1:30 PM
+- Buffet runs every day in **America/Chicago**: breakfast 7:00–12:30 ($9.99, **starts Wed Oct 21** — `BREAKFAST_START_DATE`), lunch 2:00–5:00 PM (Mon–Thu $13.99; Fri–Sun $24.99, $19.99 opening week), dinner 7:00 PM–midnight ($24.99, $19.99 opening week). Opening day (Fri Oct 16) started with lunch
 - Reservations prepay 100% of the buffet + 10.75% Chicago tax (kids 5–10 half, under 5 free); no daily cap. Cancellation: free 48h+ before seating, else 20% kept — cancelled by phone, staff cancel in admin and refund in Clover
 - Tax rate 10.75% is duplicated in `buffetSchedule.ts`, `lib/services/cartService.ts`, `server/src/lib/cartTotals.ts`
 - Auth prompt appears only at checkout, never blocks browsing or cart

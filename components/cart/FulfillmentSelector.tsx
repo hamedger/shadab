@@ -12,6 +12,7 @@ import {
 import { colors, spacing, borderRadius, fonts } from '../../constants/theme'
 
 function formatHour12(hhmm: string): string {
+  if (hhmm === '23:59') return 'midnight'
   const [h, m] = hhmm.split(':').map(Number)
   const period = h >= 12 ? 'pm' : 'am'
   const hour12 = h % 12 === 0 ? 12 : h % 12
