@@ -8,11 +8,13 @@ export {
   getReservationSubtotalCents,
   getReservationTaxCents,
   getReservationTotalCents,
+  hasReservationNotice,
   GRAND_OPENING_END,
   GRAND_OPENING_START,
   isGrandOpeningWindow,
   isMealServedOn,
   LATE_CANCELLATION_FEE_PERCENT,
+  RESERVATION_MIN_NOTICE_LABEL,
   RESTAURANT_TAX_RATE,
 } from './buffetSchedule'
 import { RESTAURANT_PHONE } from './config'

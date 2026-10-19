@@ -49,10 +49,10 @@ export function getMealStatusesForDate(dateString: string): BuffetMealStatus[] {
     let daysLabel = 'Every day'
     let otherDaysPriceLabel: string | null = null
     if (config.weekend) {
-      daysLabel = weekend ? WEEKEND_LABEL : WEEKDAY_LABEL
+      // Served every day; only the price changes between Mon–Thu and Fri–Sun.
       const other = weekend ? config : config.weekend
       const otherCents = promo ? other.grandOpeningPriceCents : other.regularPriceCents
-      otherDaysPriceLabel = `${weekend ? WEEKDAY_LABEL : WEEKEND_LABEL} ${formatCents(otherCents)}`
+      otherDaysPriceLabel = `${weekend ? WEEKEND_LABEL : WEEKDAY_LABEL} price · ${weekend ? WEEKDAY_LABEL : WEEKEND_LABEL} ${formatCents(otherCents)}`
     }
     return {
       meal,

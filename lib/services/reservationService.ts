@@ -4,6 +4,8 @@ import {
   formatMinutesLabel,
   getMealWindowMinutes,
   getReservationSlots,
+  hasReservationNotice,
+  RESERVATION_MIN_NOTICE_LABEL,
   getReservationStartMs,
   getRestaurantNow,
   addDaysToDateString,
@@ -84,6 +86,9 @@ export function validateReservation(input: ReservationInput): ReservationValidat
   } else if (input.meal && DATE_RE.test(input.date)) {
     const startMs = getReservationStartMs(input.date, input.meal, input.time)
     if (startMs !== null && startMs <= Date.now()) errors.push('That seating time has already passed')
+    else if (startMs !== null && !hasReservationNotice(startMs)) {
+      errors.push(`Reservations need at least ${RESERVATION_MIN_NOTICE_LABEL}' notice — pick a later time or date`)
+    }
   }
 
   if (!isWholeNumber(input.adults, 1)) errors.push('At least 1 adult is required')

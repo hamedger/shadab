@@ -51,7 +51,7 @@ describe('buffetService', () => {
       expect(status.nextSessionLabel).toMatch(/Grand opening.*Lunch at 2:00 PM/)
       // Opening day is a Friday — weekend lunch pricing.
       expect(status.meals.map((m) => m.priceCents)).toEqual([999, 1999, 1999])
-      expect(status.meals[1]).toMatchObject({ daysLabel: 'Fri, Sat & Sun', otherDaysPriceLabel: 'Mon – Thu $13.99' })
+      expect(status.meals[1]).toMatchObject({ daysLabel: 'Every day', otherDaysPriceLabel: 'Fri, Sat & Sun price · Mon – Thu $13.99' })
     })
 
     it('does not serve breakfast on opening day', () => {

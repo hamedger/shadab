@@ -15,6 +15,8 @@ import {
   getRestaurantNow,
   GRAND_OPENING_START,
   isMealServedOn,
+  hasReservationNotice,
+  RESERVATION_MIN_NOTICE_LABEL,
 } from '../lib/buffetSchedule'
 
 const MAX_PARTY_SIZE = 40
@@ -92,6 +94,9 @@ export async function createPendingReservation(
   }
   const startsAtMs = getReservationStartMs(input.date, meal, input.time.trim())
   if (startsAtMs === null || startsAtMs <= Date.now()) throw new Error('Date and time have already passed')
+  if (!hasReservationNotice(startsAtMs)) {
+    throw new Error(`Reservations need at least ${RESERVATION_MIN_NOTICE_LABEL}' notice — pick a later time or date`)
+  }
 
   // Reservations prepay 100% of the buffet plus tax: adults full price, kids 5–10 half, under 5 free.
   const adultCents = getBuffetMealPriceCents(input.date, meal)

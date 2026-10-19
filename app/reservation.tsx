@@ -14,6 +14,8 @@ import {
   BuffetMeal,
   CANCELLATION_POLICY_TEXT,
   getReservationSlots,
+  hasReservationNotice,
+  RESERVATION_MIN_NOTICE_LABEL,
   getReservationStartMs,
   getReservationSubtotalCents,
   getReservationTaxCents,
@@ -161,13 +163,13 @@ export default function ReservationScreen() {
   const priceDate = hasDate ? date : today < GRAND_OPENING_START ? GRAND_OPENING_START : today
   const mealOptions = useMemo(() => getMealStatusesForDate(priceDate), [priceDate])
 
-  // Hide seatings that have already started (today) — dinner slots after midnight count as tonight.
+  // Hide seatings less than 2 hours away — online bookings need that much notice.
   const slots = useMemo(() => {
     if (!meal) return []
     const all = getReservationSlots(meal)
     if (!hasDate) return all
     const now = Date.now()
-    return all.filter((slot) => (getReservationStartMs(date, meal, slot) ?? 0) > now)
+    return all.filter((slot) => hasReservationNotice(getReservationStartMs(date, meal, slot) ?? 0, now))
   }, [meal, date, hasDate])
 
   useEffect(() => {
@@ -296,7 +298,7 @@ export default function ReservationScreen() {
                 </TouchableOpacity>
               ))}
               {slots.length === 0 ? (
-                <Text style={styles.helper}>No seatings left for this meal today — pick another meal or date.</Text>
+                <Text style={styles.helper}>No seatings left for this meal today — reservations need {RESERVATION_MIN_NOTICE_LABEL}' notice. Pick another meal or date.</Text>
               ) : null}
             </View>
           ) : (

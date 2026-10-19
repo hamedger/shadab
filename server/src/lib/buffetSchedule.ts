@@ -78,6 +78,14 @@ export const LATE_CANCELLATION_FEE_PERCENT = 20
 const RESERVATION_SLOT_INTERVAL_MINUTES = 15
 /** Last seating is this long before a buffet closes. */
 const LAST_SEATING_BEFORE_CLOSE_MINUTES = 30
+/** Online bookings must start at least this long after the time of booking (same-day is fine). */
+export const RESERVATION_MIN_NOTICE_MINUTES = 120
+export const RESERVATION_MIN_NOTICE_LABEL = '2 hours'
+
+/** True when a seating starting at `startsAtMs` is far enough ahead to book online. */
+export function hasReservationNotice(startsAtMs: number, nowMs: number = Date.now()): boolean {
+  return startsAtMs >= nowMs + RESERVATION_MIN_NOTICE_MINUTES * 60 * 1000
+}
 
 export function parseHHmm(t: string): number {
   const [h, m] = t.split(':').map(Number)
