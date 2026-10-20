@@ -1,9 +1,9 @@
 import { connectFunctionsEmulator, getFunctions, httpsCallable } from 'firebase/functions'
-import app from './firebase'
+import app, { emulatorsAllowed } from './firebase'
 
 const functions = getFunctions(app, 'us-central1')
 
-if (process.env.EXPO_PUBLIC_USE_FUNCTIONS_EMULATOR === 'true') {
+if (emulatorsAllowed && process.env.EXPO_PUBLIC_USE_FUNCTIONS_EMULATOR === 'true') {
   const host = process.env.EXPO_PUBLIC_FUNCTIONS_EMULATOR_HOST ?? '127.0.0.1'
   const port = Number(process.env.EXPO_PUBLIC_FUNCTIONS_EMULATOR_PORT ?? 5001)
   try {

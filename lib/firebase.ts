@@ -65,9 +65,13 @@ function createFirestore(firebaseApp: FirebaseApp): Firestore {
 
 export const auth: Auth = createAuth(app)
 
+/** Emulators are dev-only — a production build always talks to the real Firebase project. */
+export const emulatorsAllowed = __DEV__
+
 const useAuthEmulator =
-  process.env.EXPO_PUBLIC_USE_AUTH_EMULATOR === 'true' ||
-  process.env.EXPO_PUBLIC_USE_FUNCTIONS_EMULATOR === 'true'
+  emulatorsAllowed &&
+  (process.env.EXPO_PUBLIC_USE_AUTH_EMULATOR === 'true' ||
+    process.env.EXPO_PUBLIC_USE_FUNCTIONS_EMULATOR === 'true')
 
 if (useAuthEmulator && isFirebaseConfigured) {
   const host = process.env.EXPO_PUBLIC_FUNCTIONS_EMULATOR_HOST ?? '127.0.0.1'
@@ -81,7 +85,7 @@ if (useAuthEmulator && isFirebaseConfigured) {
 
 export const db: Firestore = createFirestore(app)
 
-if (process.env.EXPO_PUBLIC_USE_FIRESTORE_EMULATOR === 'true' && isFirebaseConfigured) {
+if (emulatorsAllowed && process.env.EXPO_PUBLIC_USE_FIRESTORE_EMULATOR === 'true' && isFirebaseConfigured) {
   const host = process.env.EXPO_PUBLIC_FUNCTIONS_EMULATOR_HOST ?? '127.0.0.1'
   const port = Number(process.env.EXPO_PUBLIC_FIRESTORE_EMULATOR_PORT ?? 8080)
   try {
