@@ -60,7 +60,7 @@ describe('reservationService validation', () => {
   it('requires a meal', () => {
     const result = validateReservation({ ...validInput, meal: '' })
     expect(result.valid).toBe(false)
-    expect(result.errors[0]).toMatch(/breakfast, lunch, or dinner/i)
+    expect(result.errors[0]).toMatch(/breakfast or dinner/i)
   })
 
   it('requires at least one adult', () => {
@@ -87,14 +87,20 @@ describe('reservationService validation', () => {
   })
 
   it('requires 2 hours notice for same-day seatings', () => {
-    // 2026-10-19 12:30 PM Chicago (CDT = UTC-5)
-    jest.setSystemTime(new Date('2026-10-19T17:30:00Z'))
-    const sameDay = { ...validInput, date: '2026-10-19', meal: 'lunch' as const }
-    const tooSoon = validateReservation({ ...sameDay, time: '2:15 PM' })
+    // 2026-10-19 5:30 PM Chicago (CDT = UTC-5)
+    jest.setSystemTime(new Date('2026-10-19T22:30:00Z'))
+    const sameDay = { ...validInput, date: '2026-10-19', meal: 'dinner' as const }
+    const tooSoon = validateReservation({ ...sameDay, time: '7:15 PM' })
     expect(tooSoon.valid).toBe(false)
     expect(tooSoon.errors[0]).toMatch(/2 hours' notice/)
-    expect(validateReservation({ ...sameDay, time: '2:30 PM' }).valid).toBe(true)
+    expect(validateReservation({ ...sameDay, time: '7:30 PM' }).valid).toBe(true)
     jest.setSystemTime(new Date('2026-10-05T17:00:00Z'))
+  })
+
+  it('does not take lunch reservations (coming soon)', () => {
+    const result = validateReservation({ ...validInput, date: '2026-10-18', meal: 'lunch', time: '2:00 PM' })
+    expect(result.valid).toBe(false)
+    expect(result.errors[0]).toMatch(/Lunch buffet coming soon/)
   })
 
   it('rejects dates before opening day', () => {

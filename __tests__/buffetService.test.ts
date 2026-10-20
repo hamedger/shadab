@@ -45,35 +45,27 @@ describe('buffetService', () => {
   })
 
   describe('computeBuffetStatus', () => {
-    it('is closed before the grand opening and points at opening-day lunch', () => {
+    it('is closed before the grand opening and points at opening-day dinner', () => {
       const status = computeBuffetStatus({ config: null, now: chicago('2026-10-05T12:00:00') })
       expect(status.isOpen).toBe(false)
-      expect(status.nextSessionLabel).toMatch(/Grand opening.*Lunch at 2:00 PM/)
-      // Opening day is a Friday — weekend lunch pricing.
-      expect(status.meals.map((m) => m.priceCents)).toEqual([999, 1999, 1999])
-      expect(status.meals[1]).toMatchObject({ daysLabel: 'Every day', otherDaysPriceLabel: 'Fri, Sat & Sun price · Mon – Thu $13.99' })
+      expect(status.nextSessionLabel).toMatch(/Grand opening.*Dinner at 7:00 PM/)
+      expect(status.meals.map((m) => m.comingSoon)).toEqual([false, true, false])
     })
 
     it('does not serve breakfast on opening day', () => {
       expect(findCurrentMeal('2026-10-16', 8 * 60)).toBeNull()
-      expect(findCurrentMeal('2026-10-16', 14 * 60)).toEqual({ meal: 'lunch', serviceDate: '2026-10-16' })
+      expect(findCurrentMeal('2026-10-16', 19 * 60)).toEqual({ meal: 'dinner', serviceDate: '2026-10-16' })
     })
 
-    it('serves breakfast, lunch, and dinner at grand opening prices', () => {
+    it('serves breakfast and dinner at grand opening prices; lunch is coming soon', () => {
       expect(computeBuffetStatus({ config: null, now: chicago('2026-10-21T08:00:00') })).toMatchObject({
         isOpen: true,
         currentSession: 'breakfast',
         currentPrice: 999,
       })
-      // Sunday lunch is the weekend "Grand Lunch"; Monday lunch is the weekday price.
-      expect(computeBuffetStatus({ config: null, now: chicago('2026-10-18T14:00:00') })).toMatchObject({
-        currentSession: 'lunch',
-        currentPrice: 1999,
-      })
-      expect(computeBuffetStatus({ config: null, now: chicago('2026-10-19T14:00:00') })).toMatchObject({
-        currentSession: 'lunch',
-        currentPrice: 1399,
-      })
+      // Lunch runs Fri–Sun only: Sunday lunch is served, Monday lunch is closed.
+      const afternoon = computeBuffetStatus({ config: null, now: chicago('2026-10-18T14:00:00') })
+      expect(afternoon).toMatchObject({ isOpen: false, nextSessionLabel: 'Dinner opens at 7:00 PM' })
       expect(computeBuffetStatus({ config: null, now: chicago('2026-10-18T19:00:00') })).toMatchObject({
         currentSession: 'dinner',
         currentPrice: 1999,
@@ -94,12 +86,12 @@ describe('buffetService', () => {
       expect(status.meals.map((m) => m.priceCents)).toEqual([999, 2499, 2499])
       expect(status.meals.every((m) => !m.isSpecial)).toBe(true)
       const monday = computeBuffetStatus({ config: null, now: chicago('2026-10-26T19:00:00') })
-      expect(monday.meals.map((m) => m.priceCents)).toEqual([999, 1399, 2499])
+      expect(monday.meals.map((m) => m.priceCents)).toEqual([999, 2499, 2499])
     })
 
     it('is open on Sundays', () => {
       // 2026-10-18 is a Sunday
-      expect(computeBuffetStatus({ config: null, now: chicago('2026-10-18T14:30:00') }).isOpen).toBe(true)
+      expect(computeBuffetStatus({ config: null, now: chicago('2026-10-18T19:30:00') }).isOpen).toBe(true)
     })
 
     it('reports the next meal between services', () => {
@@ -150,14 +142,13 @@ describe('buffetService', () => {
       expect(getReservationSubtotalCents('2026-10-16', 'dinner', { adults: 2, children: 1, infants: 1 })).toBe(
         1999 * 2 + 1000,
       )
-      // 2026-10-29 is a Thursday (weekday lunch), 2026-10-30 a Friday (weekend lunch).
-      expect(getReservationSubtotalCents('2026-10-29', 'lunch', { adults: 1, children: 0, infants: 0 })).toBe(1399)
+      // 2026-10-30 is a Friday.
       expect(getReservationSubtotalCents('2026-10-30', 'lunch', { adults: 1, children: 0, infants: 0 })).toBe(2499)
     })
 
     it('adds 10.75% Chicago restaurant tax to the prepaid total', () => {
-      // $13.99 + $1.50 tax
-      expect(getReservationTotalCents('2026-10-29', 'lunch', { adults: 1, children: 0, infants: 0 })).toBe(1549)
+      // $24.99 + $2.69 tax
+      expect(getReservationTotalCents('2026-10-30', 'lunch', { adults: 1, children: 0, infants: 0 })).toBe(2768)
     })
 
     it('ends seatings 30 minutes before close', () => {

@@ -229,7 +229,7 @@ export default function AdminBuffetScreen() {
         <View style={styles.card}>
           {BUFFET_MEAL_ORDER.map((meal) => (
             <Text key={meal} style={styles.legendHint}>
-              {BUFFET_MEALS[meal].label}: {formatMealHours(meal)} · every day
+              {BUFFET_MEALS[meal].label}: {BUFFET_MEALS[meal].comingSoon ? 'coming soon' : `${formatMealHours(meal)} · every day`}
             </Text>
           ))}
           <Text style={styles.legendHint}>

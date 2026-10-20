@@ -58,6 +58,7 @@ export function getMealStatusesForDate(dateString: string): BuffetMealStatus[] {
       meal,
       label: config.label,
       hoursLabel: formatMealHours(meal),
+      comingSoon: Boolean(config.comingSoon),
       startsOnLabel:
         meal === 'breakfast' && getRestaurantNow().dateString < BREAKFAST_START_DATE
           ? `Starts ${BREAKFAST_AND_24_HOURS_START_LABEL}`
@@ -120,7 +121,7 @@ export interface ComputeBuffetStatusOptions {
   now: Date
 }
 
-/** Breakfast 7–12:30 (from Oct 21), lunch 2–5, dinner 7 PM–midnight, every day (America/Chicago). */
+/** Breakfast 7–12:30 (daily from Oct 21) and dinner 7 PM–midnight daily; lunch coming soon (America/Chicago). */
 export function computeBuffetStatus({
   config,
   now,

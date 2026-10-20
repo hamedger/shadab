@@ -14,6 +14,8 @@ import {
   OPENING_DAY_FIRST_MEAL,
   BREAKFAST_AND_24_HOURS_START_LABEL,
   BREAKFAST_START_DATE,
+  isMealReservable,
+  LUNCH_COMING_SOON_MESSAGE,
 } from '../../constants/buffetSchedule'
 
 export interface ReservationInput {
@@ -59,7 +61,8 @@ export function validateReservation(input: ReservationInput): ReservationValidat
   if (input.email?.trim() && !EMAIL_RE.test(input.email.trim())) {
     errors.push('Enter a valid email or leave it blank')
   }
-  if (!input.meal) errors.push('Choose breakfast, lunch, or dinner')
+  if (!input.meal) errors.push('Choose breakfast or dinner')
+  else if (!isMealReservable(input.meal)) errors.push(LUNCH_COMING_SOON_MESSAGE)
 
   if (!input.date.trim() || !DATE_RE.test(input.date.trim())) {
     errors.push('Choose a date')
@@ -75,7 +78,7 @@ export function validateReservation(input: ReservationInput): ReservationValidat
     } else if (input.date > maxDate) {
       errors.push(`Book up to ${MAX_ADVANCE_DAYS} days in advance`)
     } else if (input.meal === 'breakfast' && input.date < BREAKFAST_START_DATE) {
-      errors.push(`Breakfast buffet starts ${BREAKFAST_AND_24_HOURS_START_LABEL} — pick lunch, dinner, or a later date`)
+      errors.push(`Breakfast buffet starts ${BREAKFAST_AND_24_HOURS_START_LABEL} — pick another meal or a later date`)
     } else if (input.meal && !isMealServedOn(input.date, input.meal)) {
       errors.push(`${BUFFET_MEALS[input.meal].label} isn't served that day — opening day starts with ${OPENING_DAY_FIRST_MEAL} at ${formatMinutesLabel(getMealWindowMinutes(OPENING_DAY_FIRST_MEAL).start)}`)
     }

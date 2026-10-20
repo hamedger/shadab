@@ -21,11 +21,11 @@ export default function Root({ children }: PropsWithChildren) {
 
         {/* SEO */}
         <title>Shadab — Where Hyderabad Meets Chicago</title>
-        <meta name="description" content="Shadab Restaurant & Grill — lunch buffet 2–5 PM and dinner buffet 7 PM–midnight daily; breakfast buffet and 24-hour service from Wed, Oct 21. Authentic Hyderabadi, 100% Zabihah Halal. 2311 W Devon Ave, Chicago." />
+        <meta name="description" content="Shadab Restaurant & Grill — dinner buffet 7 PM–midnight daily; breakfast buffet and 24-hour service from Wed, Oct 21; lunch buffet coming soon. Authentic Hyderabadi, 100% Zabihah Halal. 2311 W Devon Ave, Chicago." />
 
         {/* Open Graph */}
         <meta property="og:title" content="Shadab — Where Hyderabad Meets Chicago" />
-        <meta property="og:description" content="Shadab Restaurant & Grill — lunch buffet 2–5 PM and dinner buffet 7 PM–midnight daily; breakfast buffet and 24-hour service from Wed, Oct 21. Authentic Hyderabadi, 100% Zabihah Halal. 2311 W Devon Ave, Chicago." />
+        <meta property="og:description" content="Shadab Restaurant & Grill — dinner buffet 7 PM–midnight daily; breakfast buffet and 24-hour service from Wed, Oct 21; lunch buffet coming soon. Authentic Hyderabadi, 100% Zabihah Halal. 2311 W Devon Ave, Chicago." />
         <meta property="og:image" content="https://shadab.io/assets/og-image.jpg" />
         <meta property="og:url" content="https://shadab.io" />
         <meta property="og:type" content="website" />
@@ -33,7 +33,7 @@ export default function Root({ children }: PropsWithChildren) {
         {/* Twitter */}
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="Shadab — Where Hyderabad Meets Chicago" />
-        <meta name="twitter:description" content="Shadab Restaurant & Grill — lunch buffet 2–5 PM and dinner buffet 7 PM–midnight daily; breakfast buffet and 24-hour service from Wed, Oct 21. Authentic Hyderabadi, 100% Zabihah Halal. 2311 W Devon Ave, Chicago." />
+        <meta name="twitter:description" content="Shadab Restaurant & Grill — dinner buffet 7 PM–midnight daily; breakfast buffet and 24-hour service from Wed, Oct 21; lunch buffet coming soon. Authentic Hyderabadi, 100% Zabihah Halal. 2311 W Devon Ave, Chicago." />
         <meta name="twitter:image" content="https://shadab.io/assets/og-image.jpg" />
 
         <link rel="preconnect" href="https://fonts.googleapis.com" />

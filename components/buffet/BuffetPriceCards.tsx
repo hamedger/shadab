@@ -33,16 +33,22 @@ export function BuffetPriceCards({ meals, currentMeal }: BuffetPriceCardsProps) 
               <Ionicons name={MEAL_ICONS[m.meal]} size={18} color={colors.gold} />
               <Text style={styles.title}>{m.label} Buffet</Text>
             </View>
-            <Text style={styles.everyDay}>{m.daysLabel}</Text>
-            <Text style={styles.hours}>{m.hoursLabel}</Text>
-            <Text style={styles.price}>{formatCents(m.priceCents)}</Text>
-            <Text style={styles.regular}>
-              Regular price{' '}
-              <Text style={m.isSpecial ? styles.regularStruck : undefined}>
-                {formatCents(m.regularPriceCents)}
-              </Text>
-            </Text>
-            {m.otherDaysPriceLabel ? <Text style={styles.otherDays}>{m.otherDaysPriceLabel}</Text> : null}
+            {m.comingSoon ? (
+              <Text style={styles.startsTag}>Coming soon</Text>
+            ) : (
+              <>
+                <Text style={styles.everyDay}>{m.daysLabel}</Text>
+                <Text style={styles.hours}>{m.hoursLabel}</Text>
+                <Text style={styles.price}>{formatCents(m.priceCents)}</Text>
+                <Text style={styles.regular}>
+                  Regular price{' '}
+                  <Text style={m.isSpecial ? styles.regularStruck : undefined}>
+                    {formatCents(m.regularPriceCents)}
+                  </Text>
+                </Text>
+                {m.otherDaysPriceLabel ? <Text style={styles.otherDays}>{m.otherDaysPriceLabel}</Text> : null}
+              </>
+            )}
             {m.meal === 'dinner' ? <Text style={styles.badge}>40+ items</Text> : null}
             {m.startsOnLabel ? <Text style={styles.startsTag}>{m.startsOnLabel}</Text> : null}
             {live ? <Text style={styles.liveTag}>Serving now</Text> : null}

@@ -40,6 +40,8 @@ export interface BuffetMealStatus {
   label: string
   /** e.g. "7:00 AM – 12:30 PM" */
   hoursLabel: string
+  /** Not served yet — show "Coming soon" instead of hours and price. */
+  comingSoon: boolean
   /** e.g. "Starts Wed, Oct 21" for breakfast before it launches. */
   startsOnLabel?: string | null
   priceCents: number
@@ -56,7 +58,7 @@ export interface BuffetStatus {
   isOpen: boolean
   currentSession: BuffetMeal | null
   currentPrice: number
-  /** Today's breakfast, lunch, and dinner, in service order. */
+  /** Today's breakfast, lunch (coming soon), and dinner, in service order. */
   meals: BuffetMealStatus[]
   nextSessionLabel: string
   countdownMinutes: number | null

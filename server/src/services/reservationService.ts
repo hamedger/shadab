@@ -15,12 +15,13 @@ import {
   getRestaurantNow,
   GRAND_OPENING_START,
   isMealServedOn,
+  LUNCH_COMING_SOON_MESSAGE,
+  RESERVABLE_MEALS,
   hasReservationNotice,
   RESERVATION_MIN_NOTICE_LABEL,
 } from '../lib/buffetSchedule'
 
 const MAX_PARTY_SIZE = 40
-const MEALS: BuffetMeal[] = ['breakfast', 'lunch', 'dinner']
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
 const MAX_ADVANCE_DAYS = 30
@@ -66,7 +67,8 @@ export async function createPendingReservation(
   const phoneDigits = input.customerPhone.replace(/\D/g, '')
   if (phoneDigits.length < 10) throw new Error('Valid phone number is required')
   if (!DATE_RE.test(input.date)) throw new Error('Date must be YYYY-MM-DD')
-  if (!MEALS.includes(input.meal as BuffetMeal)) throw new Error('Meal is required (breakfast, lunch, or dinner)')
+  if (input.meal === 'lunch') throw new Error(LUNCH_COMING_SOON_MESSAGE)
+  if (!RESERVABLE_MEALS.includes(input.meal as BuffetMeal)) throw new Error('Meal is required (breakfast or dinner)')
   const meal = input.meal as BuffetMeal
   if (!getReservationSlots(meal).includes(input.time.trim())) {
     throw new Error('Time is required and must be a seating time for the selected meal')

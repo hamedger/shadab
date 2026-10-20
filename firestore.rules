@@ -109,7 +109,7 @@ service cloud.firestore {
             && request.resource.data.email.matches('^[^@ ]+@[^@ ]+[.][^@ ]+$')))
         && request.resource.data.phone is string
         && request.resource.data.phone.size() >= 10 && request.resource.data.phone.size() <= 30
-        && request.resource.data.meal in ['breakfast', 'lunch', 'dinner']
+        && request.resource.data.meal in ['breakfast', 'dinner']
         && request.resource.data.adults is int && request.resource.data.adults >= 1
         && request.resource.data.children is int && request.resource.data.children >= 0
         && request.resource.data.infants is int && request.resource.data.infants >= 0

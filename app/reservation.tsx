@@ -5,7 +5,11 @@ import { Ionicons } from '@expo/vector-icons'
 import { Input } from '../components/ui/Input'
 import { Button } from '../components/ui/Button'
 import { ReservationDatePicker } from '../components/reservation/ReservationDatePicker'
-import { BREAKFAST_AND_24_HOURS_START_LABEL, BREAKFAST_START_DATE } from '../constants/buffetSchedule'
+import {
+  BREAKFAST_AND_24_HOURS_START_LABEL,
+  BREAKFAST_START_DATE,
+  isMealReservable,
+} from '../constants/buffetSchedule'
 import { colors, spacing, borderRadius, fonts } from '../constants/theme'
 import { useReservation } from '../hooks/useReservation'
 import { MAX_ADVANCE_DAYS } from '../lib/services/reservationService'
@@ -249,7 +253,7 @@ export default function ReservationScreen() {
 
           <Text style={styles.fieldLabel}>Choose your buffet *</Text>
           <View style={styles.mealGrid}>
-            {mealOptions.map((option) => {
+            {mealOptions.filter((option) => isMealReservable(option.meal)).map((option) => {
               const selected = meal === option.meal
               const unavailable = hasDate && !isMealServedOn(date, option.meal)
               return (
@@ -268,7 +272,9 @@ export default function ReservationScreen() {
                       <Text style={styles.mealRegular}>{formatCents(option.regularPriceCents)}</Text>
                     ) : null}
                   </View>
-                  {unavailable ? <Text style={styles.mealNote}>Not served this day</Text> : null}
+                  {unavailable ? (
+                    <Text style={styles.mealNote}>Not served this day</Text>
+                  ) : null}
                 </TouchableOpacity>
               )
             })}
@@ -276,7 +282,7 @@ export default function ReservationScreen() {
           {mealUnavailable ? (
             <Text style={styles.inlineError}>
               {meal === 'breakfast' && date < BREAKFAST_START_DATE
-                ? `Breakfast buffet starts ${BREAKFAST_AND_24_HOURS_START_LABEL} — pick lunch, dinner, or a later date.`
+                ? `Breakfast buffet starts ${BREAKFAST_AND_24_HOURS_START_LABEL} — pick another meal or a later date.`
                 : `Opening day (${GRAND_OPENING_START}) starts with ${OPENING_DAY_FIRST_MEAL} at ${formatBuffetTime(BUFFET_MEALS[OPENING_DAY_FIRST_MEAL].start)} — pick a later meal or another date.`}
             </Text>
           ) : null}
@@ -302,7 +308,7 @@ export default function ReservationScreen() {
               ) : null}
             </View>
           ) : (
-            <Text style={[styles.helper, { marginBottom: spacing.md }]}>Choose breakfast, lunch, or dinner first.</Text>
+            <Text style={[styles.helper, { marginBottom: spacing.md }]}>Choose breakfast or dinner first. Lunch buffet coming soon.</Text>
           )}
 
           <Text style={styles.fieldLabel}>Guests *</Text>

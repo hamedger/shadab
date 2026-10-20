@@ -30,7 +30,7 @@ export function getMealPriceCents(meal: BuffetMeal, dateString: string = todayDa
   return getBuffetMealPriceCents(dateString, meal)
 }
 
-/** Breakfast, lunch, and dinner hours, served every day. */
+/** Breakfast and dinner every day; lunch buffet coming soon. */
 export const BUFFET_HOURS = {
   breakfast: { start: BUFFET_MEALS.breakfast.start, end: BUFFET_MEALS.breakfast.end },
   lunch: { start: BUFFET_MEALS.lunch.start, end: BUFFET_MEALS.lunch.end },
@@ -42,7 +42,7 @@ export const BUFFET_DAYS = [0, 1, 2, 3, 4, 5, 6]
 
 /** Buffet station highlights from the grand opening flyer. */
 export const BUFFET_HIGHLIGHTS = [
-  { icon: 'restaurant-outline', label: '40+ item lunch & dinner buffet' },
+  { icon: 'restaurant-outline', label: '40+ item dinner buffet' },
   { icon: 'water-outline', label: 'Pani puri station' },
   { icon: 'fish-outline', label: 'Fish specialties' },
   { icon: 'flame-outline', label: 'Chicken specialties' },

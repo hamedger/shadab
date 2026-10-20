@@ -19,6 +19,8 @@ export interface BuffetMealConfig {
   start: string
   /** 24h HH:mm. An end at or before `start` means the service runs past midnight. */
   end: string
+  /** Not served yet: shown as "coming soon" with no hours or price, and not bookable. */
+  comingSoon?: boolean
   /** Every day — or Mon–Thu only when `weekend` is set. */
   regularPriceCents: number
   grandOpeningPriceCents: number
@@ -26,10 +28,12 @@ export interface BuffetMealConfig {
   weekend?: { regularPriceCents: number; grandOpeningPriceCents: number }
 }
 
-/** Fri, Sat, Sun (0=Sun … 6=Sat) — "Grand Lunch" days on the flyer. */
+/** Fri, Sat, Sun (0=Sun … 6=Sat) — days a meal with `weekend` prices uses them. */
 export const WEEKEND_BUFFET_DAYS = [5, 6, 0]
 
-/** Served every day, Sunday included. */
+export const LUNCH_COMING_SOON_MESSAGE = 'Lunch buffet coming soon — reserve breakfast or dinner'
+
+/** Breakfast and dinner every day, Sunday included; lunch buffet is coming soon. */
 export const BUFFET_MEALS: Record<BuffetMeal, BuffetMealConfig> = {
   breakfast: {
     label: 'Breakfast',
@@ -42,9 +46,9 @@ export const BUFFET_MEALS: Record<BuffetMeal, BuffetMealConfig> = {
     label: 'Lunch',
     start: '14:00',
     end: '17:00',
-    regularPriceCents: 1399,
-    grandOpeningPriceCents: 1399,
-    weekend: { regularPriceCents: 2499, grandOpeningPriceCents: 1999 },
+    comingSoon: true,
+    regularPriceCents: 2499,
+    grandOpeningPriceCents: 1999,
   },
   dinner: {
     label: 'Dinner',
@@ -56,11 +60,18 @@ export const BUFFET_MEALS: Record<BuffetMeal, BuffetMealConfig> = {
   },
 }
 
+/** Meals guests can book online (not the coming-soon lunch). */
+export const RESERVABLE_MEALS: BuffetMeal[] = BUFFET_MEAL_ORDER.filter((meal) => !BUFFET_MEALS[meal].comingSoon)
+
+export function isMealReservable(meal: BuffetMeal): boolean {
+  return RESERVABLE_MEALS.includes(meal)
+}
+
 /** Grand opening promo week (YYYY-MM-DD, inclusive, America/Chicago). */
 export const GRAND_OPENING_START = '2026-10-16'
 export const GRAND_OPENING_END = '2026-10-22'
-/** Opening day starts with lunch — no breakfast that day. */
-export const OPENING_DAY_FIRST_MEAL: BuffetMeal = 'lunch'
+/** Opening day had no breakfast; with lunch coming soon, dinner is its first bookable meal. */
+export const OPENING_DAY_FIRST_MEAL: BuffetMeal = 'dinner'
 /** Breakfast buffet and 24-hour service begin Wednesday, Oct 21 (YYYY-MM-DD, America/Chicago). */
 export const BREAKFAST_START_DATE = '2026-10-21'
 export const OPEN_24_HOURS_START_DATE = '2026-10-21'
@@ -108,9 +119,10 @@ export function hasGrandOpeningEnded(dateString: string): boolean {
   return dateString > GRAND_OPENING_END
 }
 
-/** False before opening day, for meals before the first one on opening day, and for breakfast before it starts. */
+/** False before opening day, for meals before the first one on opening day, for breakfast before it starts, and coming-soon meals. */
 export function isMealServedOn(dateString: string, meal: BuffetMeal): boolean {
   if (dateString < GRAND_OPENING_START) return false
+  if (BUFFET_MEALS[meal].comingSoon) return false
   if (meal === 'breakfast' && dateString < BREAKFAST_START_DATE) return false
   if (dateString === GRAND_OPENING_START) {
     return BUFFET_MEAL_ORDER.indexOf(meal) >= BUFFET_MEAL_ORDER.indexOf(OPENING_DAY_FIRST_MEAL)
