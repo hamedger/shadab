@@ -1,9 +1,12 @@
 import { getFunctions, httpsCallable } from 'firebase/functions'
-import { collection, doc, serverTimestamp, setDoc } from 'firebase/firestore'
+import { collection, doc, runTransaction, serverTimestamp } from 'firebase/firestore'
 import app, { auth, db } from '../firebase'
 import { getApiUrl } from '../../constants/api'
 import {
   BuffetMeal,
+  getReservationBlockFullMessage,
+  getReservationBlockId,
+  getReservationSeatsLeft,
   getReservationStartMs,
   getReservationSubtotalCents,
   getReservationTaxCents,
@@ -105,7 +108,8 @@ export interface PayAtRestaurantReservation {
 
 /**
  * Books a table with no online payment (prepayment switched off). Written straight to Firestore;
- * the rules only accept this shape for the signed-in user, already confirmed.
+ * the rules only accept this shape for the signed-in user, already confirmed. The party is added to
+ * its 90-minute block's guest counter in the same transaction, so a block never passes 100 guests.
  */
 export async function createPayAtRestaurantReservation(
   input: ReservationInput & { meal: BuffetMeal; locationId: string },
@@ -116,31 +120,42 @@ export async function createPayAtRestaurantReservation(
   const estimatedTotalCents = subtotalCents + taxCents
   const partySize = guests.adults + guests.children + guests.infants
   const startsAtMs = getReservationStartMs(input.date, input.meal, input.time)
-  if (startsAtMs === null) throw new Error('Choose a seating time for the selected meal')
+  const capacityBlockId = getReservationBlockId(input.date, input.meal, input.time)
+  if (startsAtMs === null || capacityBlockId === null) throw new Error('Choose a seating time for the selected meal')
 
   const ref = doc(collection(db, 'reservations'))
-  await setDoc(ref, {
-    id: ref.id,
-    userId: input.userId,
-    name: input.name.trim(),
-    ...(input.email?.trim() ? { email: input.email.trim().toLowerCase() } : {}),
-    phone: input.phone.trim(),
-    partySize,
-    meal: input.meal,
-    adults: guests.adults,
-    children: guests.children,
-    infants: guests.infants,
-    date: input.date,
-    time: input.time,
-    startsAtMs,
-    locationId: input.locationId,
-    status: 'confirmed',
-    paymentMethod: 'pay_at_restaurant',
-    subtotalCents,
-    taxCents,
-    estimatedTotalCents,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
+  const capacityRef = doc(db, 'reservationCapacity', capacityBlockId)
+  await runTransaction(db, async (tx) => {
+    const capacity = await tx.get(capacityRef)
+    const bookedGuests = capacity.exists() ? Number(capacity.data().guests ?? 0) : 0
+    const seatsLeft = getReservationSeatsLeft(bookedGuests)
+    if (partySize > seatsLeft) throw new Error(getReservationBlockFullMessage(seatsLeft))
+
+    tx.set(capacityRef, { guests: bookedGuests + partySize, lastReservationId: ref.id })
+    tx.set(ref, {
+      id: ref.id,
+      userId: input.userId,
+      name: input.name.trim(),
+      ...(input.email?.trim() ? { email: input.email.trim().toLowerCase() } : {}),
+      phone: input.phone.trim(),
+      partySize,
+      meal: input.meal,
+      adults: guests.adults,
+      children: guests.children,
+      infants: guests.infants,
+      date: input.date,
+      time: input.time,
+      startsAtMs,
+      capacityBlockId,
+      locationId: input.locationId,
+      status: 'confirmed',
+      paymentMethod: 'pay_at_restaurant',
+      subtotalCents,
+      taxCents,
+      estimatedTotalCents,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    })
   })
 
   return {

@@ -69,6 +69,7 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "seed": "ts-node --project scripts/tsconfig.json scripts/seedFirestore.ts",
+    "backfill:reservation-capacity": "ts-node --project scripts/tsconfig.json scripts/backfillReservationCapacity.ts",
     "server:dev": "cd server && npm run dev",
     "server:dev:emulator": "cd server && npm run dev:emulator",
     "functions:serve": "cd functions && npm run serve",

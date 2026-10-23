@@ -31,14 +31,15 @@ export interface BuffetMealConfig {
 /** Fri, Sat, Sun (0=Sun … 6=Sat) — days a meal with `weekend` prices uses them. */
 export const WEEKEND_BUFFET_DAYS = [5, 6, 0]
 
-export const LUNCH_COMING_SOON_MESSAGE = 'Lunch buffet coming soon — reserve breakfast or dinner'
+export const BUFFET_COMING_SOON_MESSAGE = 'Breakfast and lunch buffets coming soon — reserve dinner'
 
-/** Breakfast and dinner every day, Sunday included; lunch buffet is coming soon. */
+/** Dinner every day, Sunday included; breakfast and lunch buffets are coming soon. */
 export const BUFFET_MEALS: Record<BuffetMeal, BuffetMealConfig> = {
   breakfast: {
     label: 'Breakfast',
     start: '07:00',
     end: '12:30',
+    comingSoon: true,
     regularPriceCents: 999,
     grandOpeningPriceCents: 999,
   },
@@ -52,15 +53,15 @@ export const BUFFET_MEALS: Record<BuffetMeal, BuffetMealConfig> = {
   },
   dinner: {
     label: 'Dinner',
-    // Closes at midnight.
-    start: '19:00',
-    end: '00:00',
+    // Runs past midnight, closing at 1 AM.
+    start: '18:30',
+    end: '01:00',
     regularPriceCents: 2499,
     grandOpeningPriceCents: 1999,
   },
 }
 
-/** Meals guests can book online (not the coming-soon lunch). */
+/** Meals guests can book online (not the coming-soon breakfast and lunch). */
 export const RESERVABLE_MEALS: BuffetMeal[] = BUFFET_MEAL_ORDER.filter((meal) => !BUFFET_MEALS[meal].comingSoon)
 
 export function isMealReservable(meal: BuffetMeal): boolean {
@@ -240,6 +241,38 @@ export function getSlotMinutesFromServiceDay(meal: BuffetMeal, label: string): n
   if (minutes === null) return null
   const { start } = getMealWindowMinutes(meal)
   return minutes < start ? minutes + 24 * 60 : minutes
+}
+
+/** Each 90-minute seating block holds at most this many guests (adults, kids and infants). */
+export const RESERVATION_BLOCK_CAPACITY = 100
+export const RESERVATION_BLOCK_MINUTES = 90
+/** Where a meal's blocks are counted from (24h HH:mm); earlier seatings join the first block. */
+const RESERVATION_BLOCK_ANCHORS: Partial<Record<BuffetMeal, string>> = { dinner: '19:00' }
+
+/** 0-based 90-minute block a seating falls in — dinner: 7:00–8:15 PM (plus 6:30/6:45) is 0, 8:30–9:45 PM is 1, … */
+export function getReservationBlockIndex(meal: BuffetMeal, slotLabel: string): number | null {
+  const minutes = getSlotMinutesFromServiceDay(meal, slotLabel)
+  if (minutes === null) return null
+  const anchor = parseHHmm(RESERVATION_BLOCK_ANCHORS[meal] ?? BUFFET_MEALS[meal].start)
+  return Math.max(0, Math.floor((minutes - anchor) / RESERVATION_BLOCK_MINUTES))
+}
+
+/** Firestore id of the guest counter for a seating's block: `reservationCapacity/{date}_{meal}_{block}`. */
+export function getReservationBlockId(dateString: string, meal: BuffetMeal, slotLabel: string): string | null {
+  const block = getReservationBlockIndex(meal, slotLabel)
+  return block === null ? null : `${dateString}_${meal}_${block}`
+}
+
+/** Seats left in a block, given the guests already booked in it. */
+export function getReservationSeatsLeft(bookedGuests: number): number {
+  return Math.max(0, RESERVATION_BLOCK_CAPACITY - bookedGuests)
+}
+
+/** Message shown when a party doesn't fit in what's left of a block. */
+export function getReservationBlockFullMessage(seatsLeft: number): string {
+  return seatsLeft > 0
+    ? `Only ${seatsLeft} ${seatsLeft === 1 ? 'seat' : 'seats'} left at this time — pick a later seating or call us`
+    : 'This seating time is full — pick a later seating or call us'
 }
 
 function timeZoneOffsetMs(utcMs: number, timeZone: string): number {

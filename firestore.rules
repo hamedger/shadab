@@ -88,14 +88,14 @@ service cloud.firestore {
       allow create: if request.auth != null
         && request.resource.data.keys().hasOnly([
           'id', 'userId', 'name', 'email', 'phone', 'partySize', 'meal', 'adults', 'children',
-          'infants', 'date', 'time', 'startsAtMs', 'occasion', 'specialRequests', 'locationId',
-          'status', 'paymentMethod', 'subtotalCents', 'taxCents', 'estimatedTotalCents',
+          'infants', 'date', 'time', 'startsAtMs', 'capacityBlockId', 'occasion', 'specialRequests',
+          'locationId', 'status', 'paymentMethod', 'subtotalCents', 'taxCents', 'estimatedTotalCents',
           'createdAt', 'updatedAt'
         ])
         && request.resource.data.keys().hasAll([
           'id', 'userId', 'name', 'phone', 'partySize', 'meal', 'adults', 'children',
-          'infants', 'date', 'time', 'startsAtMs', 'locationId', 'status', 'paymentMethod',
-          'subtotalCents', 'taxCents', 'estimatedTotalCents', 'createdAt', 'updatedAt'
+          'infants', 'date', 'time', 'startsAtMs', 'capacityBlockId', 'locationId', 'status',
+          'paymentMethod', 'subtotalCents', 'taxCents', 'estimatedTotalCents', 'createdAt', 'updatedAt'
         ])
         && request.resource.data.id == reservationId
         && request.resource.data.userId == request.auth.uid
@@ -109,7 +109,7 @@ service cloud.firestore {
             && request.resource.data.email.matches('^[^@ ]+@[^@ ]+[.][^@ ]+$')))
         && request.resource.data.phone is string
         && request.resource.data.phone.size() >= 10 && request.resource.data.phone.size() <= 30
-        && request.resource.data.meal in ['breakfast', 'dinner']
+        && request.resource.data.meal in ['dinner']
         && request.resource.data.adults is int && request.resource.data.adults >= 1
         && request.resource.data.children is int && request.resource.data.children >= 0
         && request.resource.data.infants is int && request.resource.data.infants >= 0
@@ -123,6 +123,11 @@ service cloud.firestore {
         && request.resource.data.startsAtMs is int
         && request.resource.data.startsAtMs > request.time.toMillis()
         && request.resource.data.startsAtMs < request.time.toMillis() + 32 * 24 * 60 * 60 * 1000
+        // The party must be added to its 90-minute block's guest counter in the same write.
+        && request.resource.data.capacityBlockId is string
+        && request.resource.data.capacityBlockId.matches(request.resource.data.date + '_dinner_[0-9]+')
+        && getAfter(/databases/$(database)/documents/reservationCapacity/$(request.resource.data.capacityBlockId))
+          .data.lastReservationId == reservationId
         && request.resource.data.get('occasion', '') is string
         && request.resource.data.get('occasion', '').size() <= 100
         && request.resource.data.get('specialRequests', '') is string
@@ -139,6 +144,25 @@ service cloud.firestore {
         || (request.auth != null && resource.data.userId == request.auth.uid);
       // Status, payment, and refund fields are server/admin-only.
       allow update: if isAdmin();
+    }
+
+    // Guests booked per 90-minute seating block ({date}_{meal}_{block}); public so the site can
+    // grey out full times. Customers may only add a new reservation's party, up to 100 guests;
+    // admins adjust it when cancelling or restoring a booking.
+    match /reservationCapacity/{blockId} {
+      function addedReservation() {
+        return getAfter(/databases/$(database)/documents/reservations/$(request.resource.data.lastReservationId)).data;
+      }
+      allow read: if true;
+      allow write: if isAdmin();
+      allow create, update: if request.auth != null
+        && request.resource.data.keys().hasOnly(['guests', 'lastReservationId'])
+        && request.resource.data.lastReservationId is string
+        && !exists(/databases/$(database)/documents/reservations/$(request.resource.data.lastReservationId))
+        && addedReservation().capacityBlockId == blockId
+        && request.resource.data.guests is int
+        && request.resource.data.guests <= 100
+        && request.resource.data.guests == (resource == null ? 0 : resource.data.guests) + addedReservation().partySize;
     }
 
     // Catering inquiries — public create with required fields, admin read

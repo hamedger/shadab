@@ -15,10 +15,13 @@ import {
   getRestaurantNow,
   GRAND_OPENING_START,
   isMealServedOn,
-  LUNCH_COMING_SOON_MESSAGE,
+  BUFFET_COMING_SOON_MESSAGE,
   RESERVABLE_MEALS,
   hasReservationNotice,
   RESERVATION_MIN_NOTICE_LABEL,
+  getReservationBlockId,
+  getReservationSeatsLeft,
+  getReservationBlockFullMessage,
 } from '../lib/buffetSchedule'
 
 const MAX_PARTY_SIZE = 40
@@ -55,6 +58,14 @@ export interface CreatePendingReservationResult {
   }
 }
 
+/** Gives a booking's seats back to its 90-minute block when it's cancelled. */
+function releaseBlockGuests(tx: FirebaseFirestore.Transaction, data: Record<string, unknown>) {
+  const blockId = String(data.capacityBlockId ?? '')
+  const partySize = Number(data.partySize ?? 0)
+  if (!blockId || !partySize) return
+  tx.set(db.collection('reservationCapacity').doc(blockId), { guests: FieldValue.increment(-partySize) }, { merge: true })
+}
+
 function isUnpaidPending(data: Record<string, unknown>): boolean {
   return data.status === 'pending' && !String(data.cloverPaymentId ?? '').trim()
 }
@@ -67,8 +78,8 @@ export async function createPendingReservation(
   const phoneDigits = input.customerPhone.replace(/\D/g, '')
   if (phoneDigits.length < 10) throw new Error('Valid phone number is required')
   if (!DATE_RE.test(input.date)) throw new Error('Date must be YYYY-MM-DD')
-  if (input.meal === 'lunch') throw new Error(LUNCH_COMING_SOON_MESSAGE)
-  if (!RESERVABLE_MEALS.includes(input.meal as BuffetMeal)) throw new Error('Meal is required (breakfast or dinner)')
+  if (input.meal === 'breakfast' || input.meal === 'lunch') throw new Error(BUFFET_COMING_SOON_MESSAGE)
+  if (!RESERVABLE_MEALS.includes(input.meal as BuffetMeal)) throw new Error('Meal is required (dinner)')
   const meal = input.meal as BuffetMeal
   if (!getReservationSlots(meal).includes(input.time.trim())) {
     throw new Error('Time is required and must be a seating time for the selected meal')
@@ -108,34 +119,49 @@ export async function createPendingReservation(
   const feeCents = subtotalCents + taxCents
   const mealLabel = BUFFET_MEALS[meal].label
 
-  const reservationRef = db.collection('reservations').doc()
+  const capacityBlockId = getReservationBlockId(input.date, meal, input.time.trim())
+  if (!capacityBlockId) throw new Error('Time is required and must be a seating time for the selected meal')
 
-  await reservationRef.set({
-    id: reservationRef.id,
-    userId: input.uid,
-    name: input.customerName.trim(),
-    email: input.customerEmail.trim().toLowerCase(),
-    phone: input.customerPhone.trim(),
-    partySize,
-    meal,
-    adults: guests.adults,
-    children: guests.children,
-    infants: guests.infants,
-    date: input.date,
-    time: input.time.trim(),
-    startsAtMs,
-    occasion: input.occasion?.trim() ?? '',
-    specialRequests: input.specialRequests?.trim() ?? '',
-    locationId: input.locationId,
-    status: 'pending',
-    subtotalCents,
-    taxCents,
-    feeCents,
-    cloverMerchantId: input.cloverMerchantId ?? '',
-    cloverCheckoutSessionId: '',
-    cloverPaymentId: '',
-    createdAt: FieldValue.serverTimestamp(),
-    updatedAt: FieldValue.serverTimestamp(),
+  const reservationRef = db.collection('reservations').doc()
+  const capacityRef = db.collection('reservationCapacity').doc(capacityBlockId)
+
+  // Seats are held while the guest is in checkout and given back if it's abandoned or declined,
+  // so a block never passes 100 guests even when payments land at the same time.
+  await db.runTransaction(async (tx) => {
+    const capacity = await tx.get(capacityRef)
+    const bookedGuests = Number(capacity.data()?.guests ?? 0)
+    const seatsLeft = getReservationSeatsLeft(bookedGuests)
+    if (partySize > seatsLeft) throw new Error(getReservationBlockFullMessage(seatsLeft))
+
+    tx.set(capacityRef, { guests: bookedGuests + partySize, lastReservationId: reservationRef.id })
+    tx.set(reservationRef, {
+      id: reservationRef.id,
+      userId: input.uid,
+      name: input.customerName.trim(),
+      email: input.customerEmail.trim().toLowerCase(),
+      phone: input.customerPhone.trim(),
+      partySize,
+      meal,
+      adults: guests.adults,
+      children: guests.children,
+      infants: guests.infants,
+      date: input.date,
+      time: input.time.trim(),
+      startsAtMs,
+      capacityBlockId,
+      occasion: input.occasion?.trim() ?? '',
+      specialRequests: input.specialRequests?.trim() ?? '',
+      locationId: input.locationId,
+      status: 'pending',
+      subtotalCents,
+      taxCents,
+      feeCents,
+      cloverMerchantId: input.cloverMerchantId ?? '',
+      cloverCheckoutSessionId: '',
+      cloverPaymentId: '',
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+    })
   })
 
   const note = `${mealLabel} buffet · ${input.date} at ${input.time.trim()}`
@@ -169,12 +195,15 @@ export async function createPendingReservation(
 
 export async function cancelUnpaidPendingReservation(reservationId: string, uid: string): Promise<void> {
   const ref = db.collection('reservations').doc(reservationId)
-  const snap = await ref.get()
-  if (!snap.exists) return
-  const data = snap.data()!
-  if (data.userId !== uid || !isUnpaidPending(data)) return
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref)
+    if (!snap.exists) return
+    const data = snap.data()!
+    if (data.userId !== uid || !isUnpaidPending(data)) return
 
-  await ref.update({ status: 'cancelled', updatedAt: FieldValue.serverTimestamp() })
+    releaseBlockGuests(tx, data)
+    tx.update(ref, { status: 'cancelled', updatedAt: FieldValue.serverTimestamp() })
+  })
 }
 
 export async function attachReservationCheckoutSession(reservationId: string, checkoutSessionId: string) {
@@ -223,9 +252,14 @@ export async function markReservationDeclinedByCheckoutSession(
   if (snapshot.empty) return null
 
   const doc = snapshot.docs[0]
-  if (doc.data().status !== 'pending') return doc.id
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(doc.ref)
+    const data = snap.data()
+    if (!data || data.status !== 'pending') return
 
-  await doc.ref.update({ status: 'cancelled', updatedAt: FieldValue.serverTimestamp() })
+    releaseBlockGuests(tx, data)
+    tx.update(doc.ref, { status: 'cancelled', updatedAt: FieldValue.serverTimestamp() })
+  })
   return doc.id
 }
 

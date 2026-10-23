@@ -1,4 +1,4 @@
-import { doc, runTransaction, serverTimestamp, updateDoc } from 'firebase/firestore'
+import { doc, increment, runTransaction, serverTimestamp, Transaction } from 'firebase/firestore'
 import { db, isFirebaseConfigured } from '../firebase'
 import { Reservation, ReservationStatus } from '../../types/reservation'
 import {
@@ -16,12 +16,23 @@ export const RESERVATION_STATUS_LABELS: Record<ReservationStatus, string> = {
   cancelled: 'Cancelled',
 }
 
+/** Frees (cancelling) or re-takes (restoring) a booking's seats in its 90-minute block's guest counter. */
+function adjustBlockGuests(tx: Transaction, r: Pick<Reservation, 'capacityBlockId' | 'partySize'>, delta: 1 | -1) {
+  if (!r.capacityBlockId || !r.partySize) return
+  tx.set(doc(db, 'reservationCapacity', r.capacityBlockId), { guests: increment(delta * r.partySize) }, { merge: true })
+}
+
 export async function updateReservationStatus(id: string, status: ReservationStatus) {
   if (!isFirebaseConfigured) throw new Error('Firebase is not configured')
 
-  await updateDoc(doc(db, 'reservations', id), {
-    status,
-    updatedAt: serverTimestamp(),
+  const ref = doc(db, 'reservations', id)
+  await runTransaction(db, async (tx) => {
+    const snap = await tx.get(ref)
+    if (!snap.exists()) throw new Error('Reservation not found')
+    const reservation = snap.data() as Reservation
+    if (reservation.status !== 'cancelled' && status === 'cancelled') adjustBlockGuests(tx, reservation, -1)
+    if (reservation.status === 'cancelled' && status !== 'cancelled') adjustBlockGuests(tx, reservation, 1)
+    tx.update(ref, { status, updatedAt: serverTimestamp() })
   })
 }
 
@@ -56,6 +67,7 @@ export async function cancelReservationWithPolicy(id: string): Promise<Cancellat
     if (reservation.checkedInAt) throw new Error('Guest already checked in — this reservation was used')
 
     const terms = previewCancellation(reservation)
+    adjustBlockGuests(tx, reservation, -1)
     tx.update(ref, {
       status: 'cancelled',
       cancellationFeeCents: terms.feeCents,

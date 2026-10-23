@@ -34,6 +34,8 @@ export interface Reservation {
   estimatedTotalCents?: number
   /** Seating time as epoch ms (server-computed, America/Chicago). */
   startsAtMs?: number
+  /** `reservationCapacity` doc counting this party against its 90-minute block's 100-guest cap. */
+  capacityBlockId?: string
   cancellationFeeCents?: number
   refundCents?: number
   cancelledAt?: Timestamp | null

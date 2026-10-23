@@ -3,6 +3,7 @@ import * as scheduler from 'firebase-functions/v2/scheduler'
 import * as admin from 'firebase-admin'
 import { FieldValue, Timestamp } from 'firebase-admin/firestore'
 import OpenAI from 'openai'
+import { isAdminUser } from '../admin/isAdmin'
 
 if (!admin.apps.length) admin.initializeApp()
 
@@ -58,9 +59,7 @@ function pctChange(current: number, prior: number): number {
 }
 
 async function requireAdmin(uid: string): Promise<void> {
-  const tokenResult = await admin.auth().getUser(uid)
-  const claims = (tokenResult.customClaims ?? {}) as Record<string, unknown>
-  if (!claims.admin) {
+  if (!(await isAdminUser(uid))) {
     throw new functions.https.HttpsError('permission-denied', 'Admin only')
   }
 }
@@ -355,13 +354,12 @@ export const askGrowthCopilot = functions.https.onCall(async (request) => {
   const locationId = (data?.locationId as string) ?? LOCATION_ID
   const metrics = await aggregateMetrics(locationId)
   const apiKey = process.env.OPENAI_API_KEY
-
-  if (!apiKey) {
-    return {
-      answer: `Based on current data: 7-day revenue is $${(metrics.revenueWeekCents / 100).toFixed(2)} (${metrics.revenueWeekChangePct >= 0 ? 'up' : 'down'} ${Math.abs(metrics.revenueWeekChangePct)}% vs last week), with ${metrics.ordersWeek} orders. Top seller: ${metrics.topItem}. ${metrics.lapsedCustomers} guests haven't ordered in 30+ days — a win-back promo could help.`,
-      source: 'rules',
-    }
+  const rulesAnswer = {
+    answer: `Based on current data: 7-day revenue is $${(metrics.revenueWeekCents / 100).toFixed(2)} (${metrics.revenueWeekChangePct >= 0 ? 'up' : 'down'} ${Math.abs(metrics.revenueWeekChangePct)}% vs last week), with ${metrics.ordersWeek} orders. Top seller: ${metrics.topItem}. ${metrics.lapsedCustomers} guests haven't ordered in 30+ days — a win-back promo could help.`,
+    source: 'rules',
   }
+
+  if (!apiKey) return rulesAnswer
 
   const insightsSnap = await db.collection('admin_insights').doc(locationId).get()
   const stored = insightsSnap.data()
@@ -376,12 +374,21 @@ Owner question: ${question}
 
 Answer in 2-4 sentences. Be direct, actionable, and grounded in the metrics. No markdown.`
 
-  const completion = await openai.chat.completions.create({
-    model: 'gpt-4o-mini',
-    messages: [{ role: 'user', content: prompt }],
-    max_tokens: 300,
-    temperature: 0.3,
-  })
+  let completion
+  try {
+    completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [{ role: 'user', content: prompt }],
+      max_tokens: 300,
+      temperature: 0.3,
+    })
+  } catch (err) {
+    // Bad/missing key or OpenAI outage — answer from the metrics instead of failing the call.
+    functions.logger.error('askGrowthCopilot: OpenAI call failed, using rule-based answer', {
+      error: err instanceof Error ? err.message : String(err),
+    })
+    return rulesAnswer
+  }
 
   return {
     answer: completion.choices[0]?.message?.content?.trim() ?? 'Unable to generate an answer right now.',

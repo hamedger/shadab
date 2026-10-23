@@ -5,7 +5,7 @@ import { FeaturedDishes } from './FeaturedDishes'
 import { ConversionSection } from './ConversionSection'
 import { OrynPromoBlock } from './OrynPromoBlock'
 import { DemoBanner } from '../shared/DemoBanner'
-import { GrandOpeningBanner } from '../shared/GrandOpeningBanner'
+import { OperationalUpdatePoster } from './OperationalUpdatePoster'
 import { colors } from '../../constants/theme'
 
 export function HomeScreen() {
@@ -13,7 +13,7 @@ export function HomeScreen() {
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <DemoBanner />
 
-      <GrandOpeningBanner />
+      <OperationalUpdatePoster />
 
       <BuffetHero />
       <FeaturedDishes />

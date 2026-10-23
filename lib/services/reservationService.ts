@@ -15,7 +15,7 @@ import {
   BREAKFAST_AND_24_HOURS_START_LABEL,
   BREAKFAST_START_DATE,
   isMealReservable,
-  LUNCH_COMING_SOON_MESSAGE,
+  BUFFET_COMING_SOON_MESSAGE,
 } from '../../constants/buffetSchedule'
 
 export interface ReservationInput {
@@ -61,8 +61,8 @@ export function validateReservation(input: ReservationInput): ReservationValidat
   if (input.email?.trim() && !EMAIL_RE.test(input.email.trim())) {
     errors.push('Enter a valid email or leave it blank')
   }
-  if (!input.meal) errors.push('Choose breakfast or dinner')
-  else if (!isMealReservable(input.meal)) errors.push(LUNCH_COMING_SOON_MESSAGE)
+  if (!input.meal) errors.push('Choose the dinner buffet')
+  else if (!isMealReservable(input.meal)) errors.push(BUFFET_COMING_SOON_MESSAGE)
 
   if (!input.date.trim() || !DATE_RE.test(input.date.trim())) {
     errors.push('Choose a date')

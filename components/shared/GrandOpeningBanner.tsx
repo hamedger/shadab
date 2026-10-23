@@ -66,7 +66,7 @@ export function GrandOpeningBanner() {
               <Text style={styles.factLabel}>
                 {isOpen24HoursOn() ? 'Now serving' : `Starting ${BREAKFAST_AND_24_HOURS_START_LABEL}`}
               </Text>
-              <Text style={styles.factValue}>Breakfast & 24-hour service</Text>
+              <Text style={styles.factValue}>24-hour service</Text>
             </View>
           </View>
           <View style={styles.fact}>

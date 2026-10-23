@@ -8,10 +8,15 @@ import { ReservationDatePicker } from '../components/reservation/ReservationDate
 import {
   BREAKFAST_AND_24_HOURS_START_LABEL,
   BREAKFAST_START_DATE,
+  getReservationBlockFullMessage,
+  getReservationBlockId,
+  getReservationSeatsLeft,
   isMealReservable,
+  RESERVABLE_MEALS,
 } from '../constants/buffetSchedule'
 import { colors, spacing, borderRadius, fonts } from '../constants/theme'
 import { useReservation } from '../hooks/useReservation'
+import { useReservationCapacity } from '../hooks/useReservationCapacity'
 import { MAX_ADVANCE_DAYS } from '../lib/services/reservationService'
 import { formatBuffetTime, getMealStatusesForDate } from '../lib/services/buffetService'
 import {
@@ -151,7 +156,8 @@ export default function ReservationScreen() {
 
   const [name, setName] = useState(defaultName)
   const [phone, setPhone] = useState(defaultPhone)
-  const [meal, setMeal] = useState<BuffetMeal | ''>('')
+  // Pre-select when only one buffet is bookable (dinner, while breakfast and lunch are coming soon).
+  const [meal, setMeal] = useState<BuffetMeal | ''>(RESERVABLE_MEALS.length === 1 ? RESERVABLE_MEALS[0] : '')
   const [adults, setAdults] = useState(2)
   const [children, setChildren] = useState(0)
   const [date, setDate] = useState('')
@@ -179,6 +185,16 @@ export default function ReservationScreen() {
   useEffect(() => {
     if (time && !slots.includes(time)) setTime('')
   }, [slots, time])
+
+  // Each 90-minute block seats 100 guests; times whose block can't fit this party are disabled.
+  const bookedByBlock = useReservationCapacity(hasDate ? date : '', meal)
+  const partySize = adults + children
+  const seatsLeftFor = (slot: string) => {
+    const blockId = meal && hasDate ? getReservationBlockId(date, meal, slot) : null
+    return getReservationSeatsLeft(blockId ? bookedByBlock[blockId] ?? 0 : 0)
+  }
+  const selectedSeatsLeft = time ? seatsLeftFor(time) : null
+  const selectedTimeTooSmall = selectedSeatsLeft !== null && partySize > selectedSeatsLeft
 
   const mealUnavailable = Boolean(meal && hasDate && !isMealServedOn(date, meal))
   const guests = { adults, children, infants: 0 }
@@ -292,24 +308,36 @@ export default function ReservationScreen() {
           <Text style={styles.fieldLabel}>Seating Time *</Text>
           {meal ? (
             <View style={styles.timeGrid}>
-              {slots.map((slot) => (
-                <TouchableOpacity
-                  key={slot}
-                  style={[styles.timeChip, time === slot && styles.chipActive]}
-                  onPress={() => setTime(slot)}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: time === slot }}
-                >
-                  <Text style={[styles.chipText, time === slot && styles.chipTextActive]}>{slot}</Text>
-                </TouchableOpacity>
-              ))}
+              {slots.map((slot) => {
+                const seatsLeft = seatsLeftFor(slot)
+                const full = partySize > seatsLeft
+                const selected = time === slot
+                return (
+                  <TouchableOpacity
+                    key={slot}
+                    style={[styles.timeChip, selected && styles.chipActive, full && !selected && styles.mealCardDisabled]}
+                    onPress={() => setTime(slot)}
+                    disabled={full && !selected}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected, disabled: full && !selected }}
+                  >
+                    <Text style={[styles.chipText, selected && styles.chipTextActive]}>{slot}</Text>
+                    {full ? (
+                      <Text style={styles.chipNote}>{seatsLeft > 0 ? `${seatsLeft} left` : 'Full'}</Text>
+                    ) : null}
+                  </TouchableOpacity>
+                )
+              })}
               {slots.length === 0 ? (
                 <Text style={styles.helper}>No seatings left for this meal today — reservations need {RESERVATION_MIN_NOTICE_LABEL}' notice. Pick another meal or date.</Text>
               ) : null}
             </View>
           ) : (
-            <Text style={[styles.helper, { marginBottom: spacing.md }]}>Choose breakfast or dinner first. Lunch buffet coming soon.</Text>
+            <Text style={[styles.helper, { marginBottom: spacing.md }]}>Choose the dinner buffet first. Breakfast and lunch buffets coming soon.</Text>
           )}
+          {selectedTimeTooSmall ? (
+            <Text style={styles.inlineError}>{getReservationBlockFullMessage(selectedSeatsLeft ?? 0)}.</Text>
+          ) : null}
 
           <Text style={styles.fieldLabel}>Guests *</Text>
           <View style={styles.guestBox}>
@@ -364,7 +392,7 @@ export default function ReservationScreen() {
             }
             onPress={handleSubmit}
             loading={loading}
-            disabled={mealUnavailable}
+            disabled={mealUnavailable || selectedTimeTooSmall}
             fullWidth
             size="lg"
             style={{ marginTop: spacing.md }}
@@ -542,5 +570,6 @@ const styles = StyleSheet.create({
   },
   chipActive: { backgroundColor: 'rgba(201,162,75,0.15)', borderColor: colors.gold },
   chipText: { fontFamily: fonts.sans, color: colors.whiteMuted, fontSize: 12 },
+  chipNote: { fontFamily: fonts.sans, color: colors.error, fontSize: 10, textAlign: 'center' },
   chipTextActive: { fontFamily: fonts.sansBold, color: colors.gold },
 })

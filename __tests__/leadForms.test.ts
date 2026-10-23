@@ -60,7 +60,7 @@ describe('reservationService validation', () => {
   it('requires a meal', () => {
     const result = validateReservation({ ...validInput, meal: '' })
     expect(result.valid).toBe(false)
-    expect(result.errors[0]).toMatch(/breakfast or dinner/i)
+    expect(result.errors[0]).toMatch(/dinner/i)
   })
 
   it('requires at least one adult', () => {
@@ -74,16 +74,15 @@ describe('reservationService validation', () => {
     expect(result.valid).toBe(false)
   })
 
-  it('accepts the last dinner seating (11:30 PM) and Sundays', () => {
-    expect(validateReservation({ ...validInput, date: '2026-10-18', time: '11:30 PM' }).valid).toBe(true)
-    expect(validateReservation({ ...validInput, date: '2026-10-18', time: '12:00 AM' }).valid).toBe(false)
+  it('accepts the last dinner seating (12:30 AM) and Sundays', () => {
+    expect(validateReservation({ ...validInput, date: '2026-10-18', time: '12:30 AM' }).valid).toBe(true)
+    expect(validateReservation({ ...validInput, date: '2026-10-18', time: '1:00 AM' }).valid).toBe(false)
   })
 
-  it('rejects breakfast before it starts on Wed, Oct 21', () => {
-    const result = validateReservation({ ...validInput, date: '2026-10-20', meal: 'breakfast', time: '8:00 AM' })
+  it('does not take breakfast reservations (coming soon)', () => {
+    const result = validateReservation({ ...validInput, date: '2026-10-21', meal: 'breakfast', time: '8:00 AM' })
     expect(result.valid).toBe(false)
-    expect(result.errors[0]).toMatch(/Breakfast buffet starts Wed, Oct 21/)
-    expect(validateReservation({ ...validInput, date: '2026-10-21', meal: 'breakfast', time: '8:00 AM' }).valid).toBe(true)
+    expect(result.errors[0]).toMatch(/Breakfast and lunch buffets coming soon/)
   })
 
   it('requires 2 hours notice for same-day seatings', () => {
@@ -100,7 +99,7 @@ describe('reservationService validation', () => {
   it('does not take lunch reservations (coming soon)', () => {
     const result = validateReservation({ ...validInput, date: '2026-10-18', meal: 'lunch', time: '2:00 PM' })
     expect(result.valid).toBe(false)
-    expect(result.errors[0]).toMatch(/Lunch buffet coming soon/)
+    expect(result.errors[0]).toMatch(/Breakfast and lunch buffets coming soon/)
   })
 
   it('rejects dates before opening day', () => {

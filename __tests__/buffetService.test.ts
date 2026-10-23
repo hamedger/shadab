@@ -7,6 +7,10 @@ import {
 } from '../lib/services/buffetService'
 import {
   getCancellationTerms,
+  getReservationBlockFullMessage,
+  getReservationBlockId,
+  getReservationBlockIndex,
+  getReservationSeatsLeft,
   getReservationSlots,
   getReservationStartMs,
   getReservationSubtotalCents,
@@ -33,14 +37,15 @@ describe('buffetService', () => {
   })
 
   describe('findCurrentMeal', () => {
-    it('closes dinner at midnight', () => {
-      expect(findCurrentMeal('2026-10-16', 23 * 60 + 59)).toEqual({ meal: 'dinner', serviceDate: '2026-10-16' })
-      expect(findCurrentMeal('2026-10-17', 30)).toBeNull()
+    it('runs dinner 6:30 PM until 1 AM', () => {
+      expect(findCurrentMeal('2026-10-16', 18 * 60 + 29)).toBeNull()
+      expect(findCurrentMeal('2026-10-16', 18 * 60 + 30)).toEqual({ meal: 'dinner', serviceDate: '2026-10-16' })
+      expect(findCurrentMeal('2026-10-17', 30)).toEqual({ meal: 'dinner', serviceDate: '2026-10-16' })
+      expect(findCurrentMeal('2026-10-17', 60)).toBeNull()
     })
 
-    it('serves breakfast only from Wed, Oct 21', () => {
-      expect(findCurrentMeal('2026-10-20', 8 * 60)).toBeNull()
-      expect(findCurrentMeal('2026-10-21', 8 * 60)).toEqual({ meal: 'breakfast', serviceDate: '2026-10-21' })
+    it('does not serve breakfast (coming soon)', () => {
+      expect(findCurrentMeal('2026-10-21', 8 * 60)).toBeNull()
     })
   })
 
@@ -48,8 +53,8 @@ describe('buffetService', () => {
     it('is closed before the grand opening and points at opening-day dinner', () => {
       const status = computeBuffetStatus({ config: null, now: chicago('2026-10-05T12:00:00') })
       expect(status.isOpen).toBe(false)
-      expect(status.nextSessionLabel).toMatch(/Grand opening.*Dinner at 7:00 PM/)
-      expect(status.meals.map((m) => m.comingSoon)).toEqual([false, true, false])
+      expect(status.nextSessionLabel).toMatch(/Grand opening.*Dinner at 6:30 PM/)
+      expect(status.meals.map((m) => m.comingSoon)).toEqual([true, true, false])
     })
 
     it('does not serve breakfast on opening day', () => {
@@ -57,26 +62,24 @@ describe('buffetService', () => {
       expect(findCurrentMeal('2026-10-16', 19 * 60)).toEqual({ meal: 'dinner', serviceDate: '2026-10-16' })
     })
 
-    it('serves breakfast and dinner at grand opening prices; lunch is coming soon', () => {
+    it('serves dinner at grand opening prices; breakfast and lunch are coming soon', () => {
       expect(computeBuffetStatus({ config: null, now: chicago('2026-10-21T08:00:00') })).toMatchObject({
-        isOpen: true,
-        currentSession: 'breakfast',
-        currentPrice: 999,
+        isOpen: false,
+        nextSessionLabel: 'Dinner opens at 6:30 PM',
       })
-      // Lunch runs Fri–Sun only: Sunday lunch is served, Monday lunch is closed.
       const afternoon = computeBuffetStatus({ config: null, now: chicago('2026-10-18T14:00:00') })
-      expect(afternoon).toMatchObject({ isOpen: false, nextSessionLabel: 'Dinner opens at 7:00 PM' })
+      expect(afternoon).toMatchObject({ isOpen: false, nextSessionLabel: 'Dinner opens at 6:30 PM' })
       expect(computeBuffetStatus({ config: null, now: chicago('2026-10-18T19:00:00') })).toMatchObject({
         currentSession: 'dinner',
         currentPrice: 1999,
       })
     })
 
-    it('keeps the promo price through the last promo dinner, then closes at midnight', () => {
-      const status = computeBuffetStatus({ config: null, now: chicago('2026-10-22T23:30:00') })
+    it('keeps the promo price through the last promo dinner, then closes at 1 AM', () => {
+      const status = computeBuffetStatus({ config: null, now: chicago('2026-10-23T00:30:00') })
       expect(status.currentSession).toBe('dinner')
       expect(status.currentPrice).toBe(1999)
-      expect(computeBuffetStatus({ config: null, now: chicago('2026-10-23T00:30:00') }).isOpen).toBe(false)
+      expect(computeBuffetStatus({ config: null, now: chicago('2026-10-23T01:30:00') }).isOpen).toBe(false)
     })
 
     it('switches to regular prices after grand opening week', () => {
@@ -97,8 +100,8 @@ describe('buffetService', () => {
     it('reports the next meal between services', () => {
       const status = computeBuffetStatus({ config: null, now: chicago('2026-10-18T17:30:00') })
       expect(status.isOpen).toBe(false)
-      expect(status.nextSessionLabel).toBe('Dinner opens at 7:00 PM')
-      expect(status.countdownMinutes).toBe(90)
+      expect(status.nextSessionLabel).toBe('Dinner opens at 6:30 PM')
+      expect(status.countdownMinutes).toBe(60)
     })
 
     it('includes paused dishes on the customer buffet list', () => {
@@ -153,8 +156,8 @@ describe('buffetService', () => {
 
     it('ends seatings 30 minutes before close', () => {
       const dinner = getReservationSlots('dinner')
-      expect(dinner[0]).toBe('7:00 PM')
-      expect(dinner[dinner.length - 1]).toBe('11:30 PM')
+      expect(dinner[0]).toBe('6:30 PM')
+      expect(dinner[dinner.length - 1]).toBe('12:30 AM')
       const lunch = getReservationSlots('lunch')
       expect(lunch[0]).toBe('2:00 PM')
       expect(lunch[lunch.length - 1]).toBe('4:30 PM')
@@ -203,6 +206,40 @@ describe('buffetService', () => {
           sortOrder: 0,
         }),
       ).toBe(true)
+    })
+  })
+
+  describe('reservation capacity blocks', () => {
+    it('groups dinner seatings into 90-minute blocks counted from 7:00 PM', () => {
+      expect(getReservationBlockIndex('dinner', '6:30 PM')).toBe(0)
+      expect(getReservationBlockIndex('dinner', '7:00 PM')).toBe(0)
+      expect(getReservationBlockIndex('dinner', '8:15 PM')).toBe(0)
+      expect(getReservationBlockIndex('dinner', '8:30 PM')).toBe(1)
+      expect(getReservationBlockIndex('dinner', '9:45 PM')).toBe(1)
+      expect(getReservationBlockIndex('dinner', '10:00 PM')).toBe(2)
+      expect(getReservationBlockIndex('dinner', '11:30 PM')).toBe(3)
+      expect(getReservationBlockIndex('dinner', '12:30 AM')).toBe(3)
+    })
+
+    it('puts every dinner seating in one of 4 blocks', () => {
+      const blocks = new Set(getReservationSlots('dinner').map((slot) => getReservationBlockIndex('dinner', slot)))
+      expect([...blocks]).toEqual([0, 1, 2, 3])
+    })
+
+    it('builds a per-date block id; after-midnight seatings stay on the evening they belong to', () => {
+      expect(getReservationBlockId('2026-10-23', 'dinner', '8:30 PM')).toBe('2026-10-23_dinner_1')
+      expect(getReservationBlockId('2026-10-23', 'dinner', '12:15 AM')).toBe('2026-10-23_dinner_3')
+      expect(getReservationBlockId('2026-10-23', 'dinner', 'noon')).toBeNull()
+    })
+
+    it('caps each block at 100 guests', () => {
+      expect(getReservationSeatsLeft(0)).toBe(100)
+      expect(getReservationSeatsLeft(95)).toBe(5)
+      expect(getReservationSeatsLeft(100)).toBe(0)
+      expect(getReservationSeatsLeft(103)).toBe(0)
+      expect(getReservationBlockFullMessage(5)).toMatch(/^Only 5 seats left/)
+      expect(getReservationBlockFullMessage(1)).toMatch(/^Only 1 seat left/)
+      expect(getReservationBlockFullMessage(0)).toMatch(/full/)
     })
   })
 })
