@@ -141,7 +141,7 @@ describe('buffetService', () => {
   })
 
   describe('reservation pricing', () => {
-    it('charges adults full price, kids 5–10 half, under 5 free', () => {
+    it('charges adults full price, kids 4–10 half, under 4 free', () => {
       expect(getReservationSubtotalCents('2026-10-16', 'dinner', { adults: 2, children: 1, infants: 1 })).toBe(
         1999 * 2 + 1000,
       )

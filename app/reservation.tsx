@@ -76,8 +76,8 @@ function formatLongDate(dateString: string): string {
 function BookedConfirmation({ reservation }: { reservation: PayAtRestaurantReservation }) {
   const guests = [
     `${reservation.adults} adult${reservation.adults === 1 ? '' : 's'}`,
-    reservation.children ? `${reservation.children} kid${reservation.children === 1 ? '' : 's'} 5–10` : '',
-    reservation.infants ? `${reservation.infants} under 5` : '',
+    reservation.children ? `${reservation.children} kid${reservation.children === 1 ? '' : 's'} 4–10` : '',
+    reservation.infants ? `${reservation.infants} under 4` : '',
   ]
     .filter(Boolean)
     .join(' · ')
@@ -342,7 +342,7 @@ export default function ReservationScreen() {
           <Text style={styles.fieldLabel}>Guests *</Text>
           <View style={styles.guestBox}>
             <Stepper label="Adults" hint="Ages 11+" value={adults} min={1} onChange={setAdults} />
-            <Stepper label="Kids 5–10" hint="Half price" value={children} min={0} onChange={setChildren} />
+            <Stepper label="Kids 4–10" hint="Half price" value={children} min={0} onChange={setChildren} />
           </View>
 
           <Input label="Full Name *" value={name} onChangeText={setName} placeholder="Your name" />
@@ -363,7 +363,7 @@ export default function ReservationScreen() {
               <>
                 <Text style={styles.noticeText}>
                   {adults} adult{adults === 1 ? '' : 's'} × {formatCents(adultCents)}
-                  {children > 0 ? `  ·  ${children} kid${children === 1 ? '' : 's'} 5–10 × ${formatCents(childCents)}` : ''}
+                  {children > 0 ? `  ·  ${children} kid${children === 1 ? '' : 's'} 4–10 × ${formatCents(childCents)}` : ''}
                 </Text>
                 <Text style={styles.noticeText}>
                   Subtotal {formatCents(subtotal ?? 0)}  ·  Tax ({(RESTAURANT_TAX_RATE * 100).toFixed(2)}%) {formatCents(tax)}

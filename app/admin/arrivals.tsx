@@ -47,8 +47,8 @@ function guestSummary(r: Reservation): string {
   if (r.adults == null) return `Party of ${r.partySize}`
   return [
     `${r.adults} adult${r.adults === 1 ? '' : 's'}`,
-    r.children ? `${r.children} child 5–10` : '',
-    r.infants ? `${r.infants} under 5` : '',
+    r.children ? `${r.children} child 4–10` : '',
+    r.infants ? `${r.infants} under 4` : '',
   ]
     .filter(Boolean)
     .join(' · ')

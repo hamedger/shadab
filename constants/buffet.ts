@@ -9,9 +9,6 @@ import {
 
 export * from './buffetSchedule'
 
-/** Shown as an in-person policy note; not redeemed online. */
-export const STUDENT_BUFFET_DISCOUNT_PERCENT = 20
-
 function todayDateString(): string {
   return getRestaurantNow().dateString
 }
@@ -42,7 +39,6 @@ export const BUFFET_DAYS = [0, 1, 2, 3, 4, 5, 6]
 
 /** Buffet station highlights from the grand opening flyer. */
 export const BUFFET_HIGHLIGHTS = [
-  { icon: 'restaurant-outline', label: '40+ item dinner buffet' },
   { icon: 'water-outline', label: 'Pani puri station' },
   { icon: 'fish-outline', label: 'Fish specialties' },
   { icon: 'flame-outline', label: 'Chicken specialties' },

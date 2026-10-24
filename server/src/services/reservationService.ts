@@ -111,7 +111,7 @@ export async function createPendingReservation(
     throw new Error(`Reservations need at least ${RESERVATION_MIN_NOTICE_LABEL}' notice — pick a later time or date`)
   }
 
-  // Reservations prepay 100% of the buffet plus tax: adults full price, kids 5–10 half, under 5 free.
+  // Reservations prepay 100% of the buffet plus tax: adults full price, kids 4–10 half, under 4 free.
   const adultCents = getBuffetMealPriceCents(input.date, meal)
   const childCents = getChildBuffetPriceCents(adultCents)
   const subtotalCents = getReservationSubtotalCents(input.date, meal, guests)
@@ -168,7 +168,7 @@ export async function createPendingReservation(
   const lineItems: CloverLineItem[] = [
     { name: `${mealLabel} Buffet — Adult`, price: adultCents, unitQty: guests.adults, note },
     ...(guests.children > 0
-      ? [{ name: `${mealLabel} Buffet — Child (5–10)`, price: childCents, unitQty: guests.children, note }]
+      ? [{ name: `${mealLabel} Buffet — Child (4–10)`, price: childCents, unitQty: guests.children, note }]
       : []),
     {
       name: `Sales tax (${(RESTAURANT_TAX_RATE * 100).toFixed(2)}%)`,

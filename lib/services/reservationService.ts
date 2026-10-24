@@ -26,9 +26,9 @@ export interface ReservationInput {
   phone: string
   meal: BuffetMeal | ''
   adults: number
-  /** Ages 5–10 (half price). */
+  /** Ages 4–10 (half price). */
   children: number
-  /** Under 5 (free). */
+  /** Under 4 (free). */
   infants: number
   date: string
   time: string

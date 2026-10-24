@@ -98,8 +98,8 @@ function ReservationCard({
     reservation.adults != null
       ? [
           `${reservation.adults} adult${reservation.adults === 1 ? '' : 's'}`,
-          reservation.children ? `${reservation.children} child 5–10` : '',
-          reservation.infants ? `${reservation.infants} under 5` : '',
+          reservation.children ? `${reservation.children} child 4–10` : '',
+          reservation.infants ? `${reservation.infants} under 4` : '',
         ]
           .filter(Boolean)
           .join(', ')

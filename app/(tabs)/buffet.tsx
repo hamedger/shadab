@@ -14,7 +14,6 @@ import {
   BUFFET_MEALS,
   isGrandOpeningWindow,
   MUTTON_SPECIALTIES,
-  STUDENT_BUFFET_DISCOUNT_PERCENT,
 } from '../../constants/buffet'
 import { isOpen24HoursOn } from '../../constants/config'
 import { BREAKFAST_AND_24_HOURS_START_LABEL } from '../../constants/buffetSchedule'
@@ -69,8 +68,8 @@ export default function BuffetScreen() {
         title="The Buffet"
         subtitle={
           isOpen24HoursOn()
-            ? 'A 40+ item dinner buffet 6:30 PM–1 AM every day — breakfast and lunch buffets coming soon. Open 24 hours for dine-in. Online ordering coming soon.'
-            : `A 40+ item dinner buffet 6:30 PM–1 AM every day — breakfast and lunch buffets coming soon. 24-hour service starts ${BREAKFAST_AND_24_HOURS_START_LABEL}. Online ordering coming soon.`
+            ? 'A dinner buffet 6:30 PM–1 AM every day — breakfast and lunch buffets coming soon. Open 24 hours for dine-in. Online ordering coming soon.'
+            : `A dinner buffet 6:30 PM–1 AM every day — breakfast and lunch buffets coming soon. 24-hour service starts ${BREAKFAST_AND_24_HOURS_START_LABEL}. Online ordering coming soon.`
         }
       />
 
@@ -90,9 +89,8 @@ export default function BuffetScreen() {
       </View>
 
       <View style={styles.noteBlock}>
-        <Text style={styles.noteLine}>Children under 5 dine free</Text>
-        <Text style={styles.noteLine}>Children 5–10 receive half price</Text>
-        <Text style={styles.noteLine}>Students save {STUDENT_BUFFET_DISCOUNT_PERCENT}% with valid ID</Text>
+        <Text style={styles.noteLine}>Children under 4 dine free</Text>
+        <Text style={styles.noteLine}>Children 4–10 receive half price</Text>
       </View>
 
       <View style={styles.section}>
@@ -112,7 +110,7 @@ export default function BuffetScreen() {
         <Text style={styles.sectionTitle}>Included With Buffet</Text>
         <View style={styles.sectionRule} />
         <Text style={styles.includedText}>
-          Unlimited servings · Fresh naan & rice · Raita · Salad · Dessert · Soft drinks
+          Unlimited servings · Fresh naan & rice · Raita · Salad · Dessert
         </Text>
         <View style={styles.halalRow}><HalalBadge size="md" /></View>
       </View>

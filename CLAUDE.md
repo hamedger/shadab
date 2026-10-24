@@ -25,14 +25,14 @@ Forked from the Deccan Bawarchi codebase and re-themed; feature set is the same 
 - Delivery fee is **recomputed server-side** at order creation (never trusted from the client); delivery-only $20 minimum order. Hours are 2:00 PM–midnight until **24-hour service starts Wed Oct 21** (`OPEN_24_HOURS_START_DATE`; `constants/config.ts` picks the hours at page load)
 - Buffet meals, prices, grand opening week (Fri Oct 16 – Thu Oct 22, 2026), reservation pricing, and cancellation policy live in `constants/buffetSchedule.ts` — an identical copy is in `server/src/lib/buffetSchedule.ts`; edit both
 - Buffet runs every day in **America/Chicago**: breakfast 7:00–12:30 ($9.99, **starts Wed Oct 21** — `BREAKFAST_START_DATE`), lunch buffet **coming soon** (`comingSoon` — not served, not bookable, no hours/price shown), dinner 7:00 PM–midnight ($24.99, $19.99 opening week). Opening day (Fri Oct 16) started with lunch
-- Reservations prepay 100% of the buffet + 10.75% Chicago tax (kids 5–10 half, under 5 free); no daily cap; online bookings need 2 hours' notice (`RESERVATION_MIN_NOTICE_MINUTES`), same-day OK. Cancellation: free 48h+ before seating, else 20% kept — cancelled by phone, staff cancel in admin and refund in Clover
+- Reservations prepay 100% of the buffet + 10.75% Chicago tax (kids 4–10 half, under 4 free); max 100 guests per 90-minute dinner block (`RESERVATION_BLOCK_CAPACITY`); online bookings need 2 hours' notice (`RESERVATION_MIN_NOTICE_MINUTES`), same-day OK. Cancellation: free 48h+ before seating, else 20% kept — cancelled by phone, staff cancel in admin and refund in Clover
 - Tax rate 10.75% is duplicated in `buffetSchedule.ts`, `lib/services/cartService.ts`, `server/src/lib/cartTotals.ts`
 - Auth prompt appears only at checkout, never blocks browsing or cart
 - Single active location: `chicago-il` — 2311 W Devon Ave, Chicago, IL 60659 · (877) 742-3222 · https://shadab.io (see `constants/config.ts`)
 
 ## Important Files
 - `constants/theme.ts` — all colors, spacing, fonts, border radius
-- `constants/buffet.ts` — re-exports `buffetSchedule.ts` plus buffet highlights, mutton specialties, student discount
+- `constants/buffet.ts` — re-exports `buffetSchedule.ts` plus buffet highlights, mutton specialties
 - `constants/config.ts` — business hours, loyalty config, default location
 - `constants/staticLocations.ts` — the Chicago location record
 - `lib/firebase.ts` — Firebase init (Auth, Firestore, Storage)

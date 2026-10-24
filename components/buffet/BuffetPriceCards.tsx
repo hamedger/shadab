@@ -49,7 +49,6 @@ export function BuffetPriceCards({ meals, currentMeal }: BuffetPriceCardsProps) 
                 {m.otherDaysPriceLabel ? <Text style={styles.otherDays}>{m.otherDaysPriceLabel}</Text> : null}
               </>
             )}
-            {m.meal === 'dinner' ? <Text style={styles.badge}>40+ items</Text> : null}
             {m.startsOnLabel ? <Text style={styles.startsTag}>{m.startsOnLabel}</Text> : null}
             {live ? <Text style={styles.liveTag}>Serving now</Text> : null}
           </View>
@@ -94,17 +93,6 @@ const styles = StyleSheet.create({
   price: { fontFamily: fonts.sansBold, color: colors.goldLight, fontSize: 30 },
   regular: { fontFamily: fonts.sans, color: colors.whiteMuted, fontSize: 12 },
   regularStruck: { textDecorationLine: 'line-through' },
-  badge: {
-    marginTop: spacing.xs,
-    fontFamily: fonts.sansBold,
-    color: colors.white,
-    backgroundColor: '#9b1c1c',
-    fontSize: 11,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-    borderRadius: borderRadius.full,
-    overflow: 'hidden',
-  },
   startsTag: {
     marginTop: spacing.xs,
     fontFamily: fonts.sansBold,

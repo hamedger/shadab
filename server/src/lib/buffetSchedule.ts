@@ -78,9 +78,9 @@ export const BREAKFAST_START_DATE = '2026-10-21'
 export const OPEN_24_HOURS_START_DATE = '2026-10-21'
 export const BREAKFAST_AND_24_HOURS_START_LABEL = 'Wed, Oct 21'
 
-/** Kids under 5 eat free; kids 5–10 pay half the adult buffet price. */
-export const CHILD_FREE_MAX_AGE = 4
-export const CHILD_HALF_PRICE_AGES = { min: 5, max: 10 }
+/** Kids under 4 eat free; kids 4–10 pay half the adult buffet price. */
+export const CHILD_FREE_MAX_AGE = 3
+export const CHILD_HALF_PRICE_AGES = { min: 4, max: 10 }
 
 /** Reservations are prepaid in full. Free cancellation until this many hours before seating. */
 export const FREE_CANCELLATION_HOURS = 48
@@ -161,9 +161,9 @@ export function getChildBuffetPriceCents(adultPriceCents: number): number {
 
 export interface ReservationGuests {
   adults: number
-  /** Ages 5–10, half price. */
+  /** Ages 4–10, half price. */
   children: number
-  /** Under 5, free. */
+  /** Under 4, free. */
   infants: number
 }
 
@@ -178,7 +178,7 @@ export function getReservationPartySize(guests: ReservationGuests): number {
  */
 export const RESTAURANT_TAX_RATE = 0.1075
 
-/** Buffet price for the party before tax: adults full price, kids 5–10 half, under 5 free. */
+/** Buffet price for the party before tax: adults full price, kids 4–10 half, under 4 free. */
 export function getReservationSubtotalCents(
   dateString: string,
   meal: BuffetMeal,

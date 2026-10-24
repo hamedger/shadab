@@ -69,8 +69,8 @@ export function buildCustomerReservationConfirmationBody(input: CustomerReservat
     input.adults != null
       ? [
           plural(input.adults, 'adult', 'adults'),
-          input.children ? plural(input.children, 'child (5–10)', 'children (5–10)') : '',
-          input.infants ? plural(input.infants, 'child under 5', 'children under 5') : '',
+          input.children ? plural(input.children, 'child (4–10)', 'children (4–10)') : '',
+          input.infants ? plural(input.infants, 'child under 4', 'children under 4') : '',
         ]
           .filter(Boolean)
           .join(', ')

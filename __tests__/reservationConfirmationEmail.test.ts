@@ -35,7 +35,7 @@ describe('reservation confirmation email', () => {
     expect(body).toContain('RESERVATION #123456')
     expect(body).toContain('Show this email at the host stand')
     expect(body).toContain('Dinner Buffet')
-    expect(body).toContain('Party: 2 adults, 1 child (5–10), 1 child under 5')
+    expect(body).toContain('Party: 2 adults, 1 child (4–10), 1 child under 4')
     expect(body).toContain('Tax: $4.03')
     expect(body).toContain('Total paid: $41.51')
     expect(body).toContain('Free cancellation up to 48 hours before your reservation.')
