@@ -10,6 +10,7 @@ import { BuffetMenuBySection } from '../../components/buffet/BuffetMenuBySection
 import { GrandOpeningBanner } from '../../components/shared/GrandOpeningBanner'
 import { groupBuffetDishesForCustomer } from '../../lib/buffetLayout'
 import { BuffetPriceCards } from '../../components/buffet/BuffetPriceCards'
+import { FullyReservedNotice } from '../../components/shared/FullyReservedNotice'
 import {
   BUFFET_MEALS,
   isGrandOpeningWindow,
@@ -86,6 +87,7 @@ export default function BuffetScreen() {
         <TouchableOpacity style={[styles.goldBtn, styles.pricingCta]} onPress={() => router.push('/reservation' as never)}>
           <Text style={styles.goldBtnText}>Reserve</Text>
         </TouchableOpacity>
+        <FullyReservedNotice style={styles.fullyReserved} />
       </View>
 
       <View style={styles.noteBlock}>
@@ -116,6 +118,7 @@ export default function BuffetScreen() {
       </View>
 
       <View style={styles.ctaSection}>
+        <FullyReservedNotice style={styles.fullyReserved} />
         <TouchableOpacity style={styles.goldBtnWide} onPress={() => router.push('/reservation' as never)}>
           <Text style={styles.goldBtnText}>Reserve Your Table</Text>
         </TouchableOpacity>
@@ -126,6 +129,7 @@ export default function BuffetScreen() {
 }
 
 const styles = StyleSheet.create({
+  fullyReserved: { alignSelf: 'center', marginVertical: spacing.sm },
   container: { flex: 1, backgroundColor: colors.background },
   halalBar: {
     flexDirection: 'row',

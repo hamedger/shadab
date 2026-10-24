@@ -6,8 +6,10 @@ import {
   StyleSheet,
   ActivityIndicator,
   Alert,
+  Switch,
 } from 'react-native'
 import { useAdminReservations } from '../../hooks/useAdminReservations'
+import { useFullyReserved } from '../../hooks/useFullyReserved'
 import { useAllLocations } from '../../hooks/useLocations'
 import { useAdminLocationStore } from '../../store/adminLocationStore'
 import { AdminLocationFilter } from '../../components/admin/AdminLocationFilter'
@@ -17,7 +19,9 @@ import {
   formatReservationNumber,
   isPayAtRestaurant,
   previewCancellation,
+  getCurrentServiceDate,
   RESERVATION_STATUS_LABELS,
+  setFullyReservedToday,
   updateReservationStatus,
 } from '../../lib/admin/reservationAdmin'
 import { BUFFET_MEALS } from '../../constants/buffetSchedule'
@@ -214,6 +218,47 @@ function ReservationCard({
   )
 }
 
+/** Stops online bookings for tonight and shows "We are fully reserved" on the site; off after 3:00 AM. */
+function FullyReservedToggle() {
+  const { fullyReservedToday } = useFullyReserved()
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const toggle = async (on: boolean) => {
+    setSaving(true)
+    setError(null)
+    try {
+      await setFullyReservedToday(on)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not update — try again')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <View style={[styles.fullyReserved, fullyReservedToday && styles.fullyReservedOn]}>
+      <View style={styles.fullyReservedText}>
+        <Text style={styles.fullyReservedTitle}>Fully reserved today</Text>
+        <Text style={styles.noteLine}>
+          {fullyReservedToday
+            ? `On — online bookings for ${getCurrentServiceDate()} are stopped and the site shows "We are fully reserved". Turns off after 3:00 AM.`
+            : 'Off — guests can book today online. Existing reservations are never affected.'}
+        </Text>
+        {error ? <Text style={styles.fullyReservedError}>{error}</Text> : null}
+      </View>
+      <Switch
+        value={fullyReservedToday}
+        onValueChange={toggle}
+        disabled={saving}
+        trackColor={{ false: colors.border, true: colors.goldDark }}
+        thumbColor={fullyReservedToday ? colors.gold : colors.whiteMuted}
+        accessibilityLabel="Fully reserved today"
+      />
+    </View>
+  )
+}
+
 export default function AdminReservationsScreen() {
   const hydrate = useAdminLocationStore((s) => s.hydrate)
   const filterLocationId = useAdminLocationStore((s) => s.filterLocationId)
@@ -251,6 +296,8 @@ export default function AdminReservationsScreen() {
         <Text style={styles.count}>{filtered.length} shown</Text>
       </View>
 
+      <FullyReservedToggle />
+
       <AdminLocationFilter />
       <SimpleFilterBar
         options={FILTER_OPTIONS}
@@ -282,6 +329,22 @@ export default function AdminReservationsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  fullyReserved: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.md,
+    padding: spacing.md,
+    backgroundColor: colors.backgroundCard,
+    borderRadius: borderRadius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  fullyReservedOn: { borderColor: colors.gold },
+  fullyReservedText: { flex: 1, gap: spacing.xs },
+  fullyReservedTitle: { fontFamily: fonts.sansBold, color: colors.white, fontSize: 15 },
+  fullyReservedError: { fontFamily: fonts.sans, color: colors.error, fontSize: 12 },
   header: {
     flexDirection: 'row',
     alignItems: 'baseline',

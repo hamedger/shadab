@@ -17,6 +17,8 @@ import {
 import { colors, spacing, borderRadius, fonts } from '../constants/theme'
 import { useReservation } from '../hooks/useReservation'
 import { useReservationCapacity } from '../hooks/useReservationCapacity'
+import { useFullyReserved } from '../hooks/useFullyReserved'
+import { FULLY_RESERVED_MESSAGE, FullyReservedNotice } from '../components/shared/FullyReservedNotice'
 import { MAX_ADVANCE_DAYS } from '../lib/services/reservationService'
 import { formatBuffetTime, getMealStatusesForDate } from '../lib/services/buffetService'
 import {
@@ -196,6 +198,10 @@ export default function ReservationScreen() {
   const selectedSeatsLeft = time ? seatsLeftFor(time) : null
   const selectedTimeTooSmall = selectedSeatsLeft !== null && partySize > selectedSeatsLeft
 
+  // Staff can mark today fully reserved in admin; other dates stay bookable.
+  const { fullyReservedDate } = useFullyReserved()
+  const dateFullyReserved = hasDate && date === fullyReservedDate
+
   const mealUnavailable = Boolean(meal && hasDate && !isMealServedOn(date, meal))
   const guests = { adults, children, infants: 0 }
   const adultCents = meal ? getBuffetMealPriceCents(priceDate, meal) : 0
@@ -246,6 +252,8 @@ export default function ReservationScreen() {
             Reserve in advance to guarantee your dining experience and skip the wait — fast, easy, and
             hassle-free.
           </Text>
+
+          <FullyReservedNotice style={{ marginBottom: spacing.md }} />
 
           <View style={styles.warning}>
             <Ionicons name="calendar-outline" size={16} color={colors.white} />
@@ -303,7 +311,15 @@ export default function ReservationScreen() {
             </Text>
           ) : null}
 
-          <ReservationDatePicker value={date} onChange={setDate} maxAdvanceDays={MAX_ADVANCE_DAYS} />
+          <ReservationDatePicker
+            value={date}
+            onChange={setDate}
+            maxAdvanceDays={MAX_ADVANCE_DAYS}
+            disabledDates={fullyReservedDate ? [fullyReservedDate] : []}
+          />
+          {dateFullyReserved ? (
+            <Text style={styles.inlineError}>{FULLY_RESERVED_MESSAGE} for this date — please pick another date.</Text>
+          ) : null}
 
           <Text style={styles.fieldLabel}>Seating Time *</Text>
           {meal ? (
@@ -392,7 +408,7 @@ export default function ReservationScreen() {
             }
             onPress={handleSubmit}
             loading={loading}
-            disabled={mealUnavailable || selectedTimeTooSmall}
+            disabled={mealUnavailable || selectedTimeTooSmall || dateFullyReserved}
             fullWidth
             size="lg"
             style={{ marginTop: spacing.md }}

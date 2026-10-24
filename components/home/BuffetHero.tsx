@@ -13,6 +13,7 @@ import { useRouter } from 'expo-router'
 import { useBuffet } from '../../hooks/useBuffet'
 import { OrderOnlinePicker } from '../location/OrderOnlinePicker'
 import { RESTAURANT_STATS } from '../../constants/home'
+import { FullyReservedNotice } from '../shared/FullyReservedNotice'
 import {
   APP_TAGLINE,
   ONLINE_ORDERING_COMING_SOON_LABEL,
@@ -138,6 +139,8 @@ export function BuffetHero() {
           </TouchableOpacity>
         </View>
 
+        <FullyReservedNotice style={styles.fullyReserved} />
+
         <View style={styles.ownership}>
           <Text style={styles.ownershipText}>{OWNERSHIP_NOTE}</Text>
         </View>
@@ -159,6 +162,7 @@ export function BuffetHero() {
 }
 
 const styles = StyleSheet.create({
+  fullyReserved: { alignSelf: 'center', marginTop: spacing.md },
   section: {
     marginTop: spacing.lg,
     minHeight: 420,

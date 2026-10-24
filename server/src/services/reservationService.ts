@@ -128,6 +128,10 @@ export async function createPendingReservation(
   // Seats are held while the guest is in checkout and given back if it's abandoned or declined,
   // so a block never passes 100 guests even when payments land at the same time.
   await db.runTransaction(async (tx) => {
+    const settings = await tx.get(db.collection('settings').doc('reservations'))
+    if (settings.data()?.fullyReservedDate === input.date) {
+      throw new Error('We are fully reserved for this date — please pick another date')
+    }
     const capacity = await tx.get(capacityRef)
     const bookedGuests = Number(capacity.data()?.guests ?? 0)
     const seatsLeft = getReservationSeatsLeft(bookedGuests)

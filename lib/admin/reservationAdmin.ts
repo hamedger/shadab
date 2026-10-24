@@ -1,4 +1,4 @@
-import { doc, increment, runTransaction, serverTimestamp, Transaction } from 'firebase/firestore'
+import { doc, increment, runTransaction, serverTimestamp, setDoc, Transaction } from 'firebase/firestore'
 import { db, isFirebaseConfigured } from '../firebase'
 import { Reservation, ReservationStatus } from '../../types/reservation'
 import {
@@ -90,6 +90,20 @@ export const SERVICE_DAY_ROLLOVER_MINUTES = 3 * 60
 export function getCurrentServiceDate(now: Date = new Date()): string {
   const { dateString, minutes } = getRestaurantNow(now)
   return minutes < SERVICE_DAY_ROLLOVER_MINUTES ? addDaysToDateString(dateString, -1) : dateString
+}
+
+/**
+ * Stops (or reopens) online bookings for the current service day and shows "We are fully reserved"
+ * on the site. Stores that day's date, so it lapses by itself when the service day ends.
+ */
+export async function setFullyReservedToday(on: boolean): Promise<void> {
+  if (!isFirebaseConfigured) throw new Error('Firebase is not configured')
+
+  await setDoc(
+    doc(db, 'settings', 'reservations'),
+    { fullyReservedDate: on ? getCurrentServiceDate() : '', updatedAt: serverTimestamp() },
+    { merge: true },
+  )
 }
 
 /** Minutes after midnight of the service day, so 12:30 AM dinner seatings sort after 11:45 PM. */

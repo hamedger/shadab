@@ -128,6 +128,10 @@ service cloud.firestore {
         && request.resource.data.capacityBlockId.matches(request.resource.data.date + '_dinner_[0-9]+')
         && getAfter(/databases/$(database)/documents/reservationCapacity/$(request.resource.data.capacityBlockId))
           .data.lastReservationId == reservationId
+        // Staff can stop online bookings for today ("Fully reserved today" in admin).
+        && !(exists(/databases/$(database)/documents/settings/reservations)
+          && get(/databases/$(database)/documents/settings/reservations).data.get('fullyReservedDate', '')
+            == request.resource.data.date)
         && request.resource.data.get('occasion', '') is string
         && request.resource.data.get('occasion', '').size() <= 100
         && request.resource.data.get('specialRequests', '') is string
@@ -144,6 +148,13 @@ service cloud.firestore {
         || (request.auth != null && resource.data.userId == request.auth.uid);
       // Status, payment, and refund fields are server/admin-only.
       allow update: if isAdmin();
+    }
+
+    // Reservation switches set in admin — fullyReservedDate is the service date online bookings
+    // are stopped for (and the site shows "We are fully reserved"). Public so the site can read it.
+    match /settings/reservations {
+      allow read: if true;
+      allow write: if isAdmin();
     }
 
     // Guests booked per 90-minute seating block ({date}_{meal}_{block}); public so the site can

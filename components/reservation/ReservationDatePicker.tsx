@@ -23,6 +23,8 @@ interface ReservationDatePickerProps {
   value: string
   onChange: (date: string) => void
   maxAdvanceDays?: number
+  /** YYYY-MM-DD dates that can't be picked (e.g. today while it's fully reserved). */
+  disabledDates?: string[]
 }
 
 const WEEKDAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
@@ -36,7 +38,7 @@ function parseDateString(s: string): Date | null {
   return new Date(`${s}T12:00:00`)
 }
 
-export function ReservationDatePicker({ value, onChange, maxAdvanceDays = 30 }: ReservationDatePickerProps) {
+export function ReservationDatePicker({ value, onChange, maxAdvanceDays = 30, disabledDates = [] }: ReservationDatePickerProps) {
   const [visible, setVisible] = useState(false)
   const today = useMemo(() => startOfDay(new Date()), [])
   const bookingStart = useMemo(() => {
@@ -126,7 +128,7 @@ export function ReservationDatePicker({ value, onChange, maxAdvanceDays = 30 }: 
               {days.map((day) => {
                 const inMonth = isSameMonth(day, viewMonth)
                 const outOfRange = isBefore(day, bookingStart) || isAfter(day, maxDate)
-                const disabled = !inMonth || outOfRange
+                const disabled = !inMonth || outOfRange || disabledDates.includes(toDateString(day))
                 const isSelected = selected ? isSameDay(day, selected) : false
 
                 return (

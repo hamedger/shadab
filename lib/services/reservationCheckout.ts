@@ -125,7 +125,12 @@ export async function createPayAtRestaurantReservation(
 
   const ref = doc(collection(db, 'reservations'))
   const capacityRef = doc(db, 'reservationCapacity', capacityBlockId)
+  const settingsRef = doc(db, 'settings', 'reservations')
   await runTransaction(db, async (tx) => {
+    const settings = await tx.get(settingsRef)
+    if (settings.data()?.fullyReservedDate === input.date) {
+      throw new Error('We are fully reserved for this date — please pick another date')
+    }
     const capacity = await tx.get(capacityRef)
     const bookedGuests = capacity.exists() ? Number(capacity.data().guests ?? 0) : 0
     const seatsLeft = getReservationSeatsLeft(bookedGuests)
