@@ -24,6 +24,9 @@ import { formatBuffetTime, getMealStatusesForDate } from '../lib/services/buffet
 import {
   BuffetMeal,
   CANCELLATION_POLICY_TEXT,
+  LARGE_PARTY_GRATUITY_MIN_GUESTS,
+  LARGE_PARTY_GRATUITY_PERCENT,
+  LARGE_PARTY_GRATUITY_TEXT,
   getReservationSlots,
   hasReservationNotice,
   RESERVATION_MIN_NOTICE_LABEL,
@@ -100,6 +103,9 @@ function BookedConfirmation({ reservation }: { reservation: PayAtRestaurantReser
           Party of {reservation.partySize} ({guests})
         </Text>
         <Text style={styles.noticeTotal}>Estimated total {formatCents(reservation.estimatedTotalCents)}</Text>
+        {reservation.partySize >= LARGE_PARTY_GRATUITY_MIN_GUESTS ? (
+          <Text style={styles.confirmLine}>+ {LARGE_PARTY_GRATUITY_PERCENT}% gratuity added at the restaurant</Text>
+        ) : null}
       </View>
       <Text style={styles.noticeText}>{PAY_AT_RESTAURANT_POLICY_TEXT}</Text>
       <Text style={styles.noticeText}>
@@ -385,6 +391,9 @@ export default function ReservationScreen() {
                   Subtotal {formatCents(subtotal ?? 0)}  ·  Tax ({(RESTAURANT_TAX_RATE * 100).toFixed(2)}%) {formatCents(tax)}
                 </Text>
                 <Text style={styles.noticeTotal}>Total {formatCents(total ?? 0)}</Text>
+                {partySize >= LARGE_PARTY_GRATUITY_MIN_GUESTS ? (
+                  <Text style={styles.noticeText}>+ {LARGE_PARTY_GRATUITY_PERCENT}% gratuity added at the restaurant for your party of {partySize}</Text>
+                ) : null}
               </>
             ) : (
               <Text style={styles.noticeText}>
@@ -393,6 +402,7 @@ export default function ReservationScreen() {
                   : 'Choose a meal to see the estimated buffet price for your party plus tax.'}
               </Text>
             )}
+            <Text style={styles.noticeText}>{LARGE_PARTY_GRATUITY_TEXT}</Text>
             <Text style={styles.noticeText}>
               {RESERVATION_PREPAYMENT_ENABLED ? CANCELLATION_POLICY_TEXT : PAY_AT_RESTAURANT_POLICY_TEXT}
             </Text>

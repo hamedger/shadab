@@ -35,5 +35,10 @@ export const TABLE_HOLD_TEXT = `We hold your table for ${TABLE_HOLD_MINUTES} min
 
 export const PAY_AT_RESTAURANT_POLICY_TEXT = `No payment needed now — pay for your buffet at the restaurant. ${TABLE_HOLD_TEXT} Need to cancel or change? Call us at ${formatPhoneDisplay(RESTAURANT_PHONE)}.`
 
+/** Parties this size or larger have a gratuity added to the bill at the restaurant (not in online totals). */
+export const LARGE_PARTY_GRATUITY_MIN_GUESTS = 4
+export const LARGE_PARTY_GRATUITY_PERCENT = 15
+export const LARGE_PARTY_GRATUITY_TEXT = `A ${LARGE_PARTY_GRATUITY_PERCENT}% gratuity is added for parties of ${LARGE_PARTY_GRATUITY_MIN_GUESTS} or more guests.`
+
 /** Plain-language cancellation policy shown before payment and in admin. */
 export const CANCELLATION_POLICY_TEXT = `Free cancellation up to 48 hours before your reservation. Cancellations within 48 hours are charged a 20% fee; the rest is refunded. To cancel, call us at ${formatPhoneDisplay(RESTAURANT_PHONE)}.`

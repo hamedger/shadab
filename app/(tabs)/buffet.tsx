@@ -11,6 +11,7 @@ import { GrandOpeningBanner } from '../../components/shared/GrandOpeningBanner'
 import { groupBuffetDishesForCustomer } from '../../lib/buffetLayout'
 import { BuffetPriceCards } from '../../components/buffet/BuffetPriceCards'
 import { FullyReservedNotice } from '../../components/shared/FullyReservedNotice'
+import { LARGE_PARTY_GRATUITY_TEXT } from '../../constants/reservation'
 import {
   BUFFET_MEALS,
   isGrandOpeningWindow,
@@ -93,6 +94,7 @@ export default function BuffetScreen() {
       <View style={styles.noteBlock}>
         <Text style={styles.noteLine}>Children under 4 dine free</Text>
         <Text style={styles.noteLine}>Children 4–10 receive half price</Text>
+        <Text style={styles.noteLine}>{LARGE_PARTY_GRATUITY_TEXT}</Text>
       </View>
 
       <View style={styles.section}>
