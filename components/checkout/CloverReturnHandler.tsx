@@ -38,55 +38,72 @@ export function CloverReturnHandler() {
     handledRef.current = checkoutSessionId
 
     const orderIdParam = params.orderId?.trim()
+    // Only Clover's signed webhook marks payment, so poll until it lands (usually seconds).
+    const delaysMs = [0, 2000, 3000, 5000, 5000, 10000, 10000, 15000]
+    const isNotFound = (error: unknown) =>
+      typeof error === 'object' && error !== null && (error as { code?: string }).code === 'functions/not-found'
+
+    setMessage('Confirming your payment with Clover…')
+    clearCart()
+    clearCheckoutContext()
+    router.replace('/(tabs)/' as never)
 
     void (async () => {
-      let confirmedOrderId = ''
-      let confirmedReservation: { id: string; date: string; time: string } | null = null
-      try {
-        const result = await confirmCloverOrderAfterRedirect(checkoutSessionId, orderIdParam)
-        if (result?.orderId) confirmedOrderId = result.orderId
-      } catch (error) {
-        console.warn('[CloverReturn] confirmCloverOrder failed — trying reservation next', error)
-      }
+      let kind: 'order' | 'reservation' | null = null
+      let finalMessage: string | null = null
+      let pendingKind: 'order' | 'reservation' | null = null
 
-      if (!confirmedOrderId) {
-        try {
-          const reservationResult = await confirmCloverReservationAfterRedirect(
-            checkoutSessionId,
-            orderIdParam,
-          )
-          if (reservationResult?.reservationId) {
-            confirmedReservation = {
-              id: reservationResult.reservationId,
-              date: reservationResult.date,
-              time: reservationResult.time,
+      for (const delay of delaysMs) {
+        if (delay > 0) await new Promise((resolve) => setTimeout(resolve, delay))
+
+        if (kind !== 'reservation') {
+          try {
+            const result = await confirmCloverOrderAfterRedirect(checkoutSessionId, orderIdParam)
+            if (result?.orderId) {
+              kind = 'order'
+              if (result.status !== 'pending') {
+                finalMessage = `Payment confirmed! Order #${formatOrderShortId(result.orderId)}`
+                break
+              }
+              pendingKind = 'order'
+              continue
             }
+          } catch (error) {
+            if (isNotFound(error)) kind = 'reservation'
+            else if (kind === 'order') continue
           }
-        } catch (error) {
-          console.warn('[CloverReturn] confirmCloverReservation failed — webhook may confirm later', error)
+        }
+
+        if (kind !== 'order') {
+          try {
+            const r = await confirmCloverReservationAfterRedirect(checkoutSessionId, orderIdParam)
+            if (r?.reservationId) {
+              kind = 'reservation'
+              if (r.status !== 'pending') {
+                finalMessage =
+                  `Payment confirmed! Reservation #${r.reservationId.slice(-6).toUpperCase()} — ${r.date} at ${r.time}. Show your confirmation email at the host stand. ` +
+                  `Need to cancel? Call ${formatPhoneDisplay(RESTAURANT_PHONE)} — free up to 48 hours before, 20% fee within 48 hours.`
+                break
+              }
+              pendingKind = 'reservation'
+            }
+          } catch (error) {
+            console.warn('[CloverReturn] reservation status check failed', error)
+          }
         }
       }
 
-      clearCart()
-      clearCheckoutContext()
-
-      if (confirmedOrderId) {
-        setMessage(`Payment confirmed! Order #${formatOrderShortId(confirmedOrderId)}`)
-      } else if (confirmedReservation) {
-        setMessage(
-          `Payment confirmed! Reservation #${confirmedReservation.id.slice(-6).toUpperCase()} — ${confirmedReservation.date} at ${confirmedReservation.time}. Show your confirmation email at the host stand. ` +
-            `Need to cancel? Call ${formatPhoneDisplay(RESTAURANT_PHONE)} — free up to 48 hours before, 20% fee within 48 hours.`,
-        )
-      } else {
-        setMessage('Payment confirmed!')
-      }
-
-      router.replace('/(tabs)/' as never)
-
+      setMessage(
+        finalMessage ??
+          `We haven't received Clover's payment confirmation for your ${pendingKind ?? 'order'} yet. ` +
+            `If you completed payment it will be confirmed shortly — questions? Call ${formatPhoneDisplay(RESTAURANT_PHONE)}.`,
+      )
       if (Platform.OS === 'web' && typeof window !== 'undefined') {
-        window.setTimeout(() => setMessage(null), confirmedReservation ? 20000 : 8000)
+        window.setTimeout(() => setMessage(null), kind === 'reservation' ? 20000 : 10000)
       }
     })()
+    // No cleanup: router.replace above drops session_id and re-runs this effect, which must not
+    // stop the poll (handledRef already prevents a second run).
   }, [params.session_id, params.orderId, clearCart, router])
 
   if (!message) return null

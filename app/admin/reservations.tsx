@@ -129,7 +129,14 @@ function ReservationCard({
         {mealLabel} · {reservation.date} at {reservation.time} · Party of {reservation.partySize}
       </Text>
       {guestBreakdown ? <Text style={styles.noteLine}>{guestBreakdown}</Text> : null}
-      {isPayAtRestaurant(reservation) ? (
+      {reservation.needsRefund ? (
+        <Text style={styles.refundAlert}>
+          ⚠ Refund needed in Clover — {reservation.refundReason ?? 'paid after checkout expired'}
+        </Text>
+      ) : null}
+      {reservation.cancelReason === 'checkout_abandoned' && !reservation.needsRefund ? (
+        <Text style={styles.noteLine}>Checkout not completed — no payment taken</Text>
+      ) : isPayAtRestaurant(reservation) ? (
         <Text style={styles.noteLine}>
           Pay at restaurant
           {reservation.estimatedTotalCents != null ? ` · est. ${formatCents(reservation.estimatedTotalCents)}` : ''}
@@ -328,6 +335,7 @@ export default function AdminReservationsScreen() {
 }
 
 const styles = StyleSheet.create({
+  refundAlert: { fontFamily: fonts.sansBold, color: colors.error, fontSize: 13, marginTop: 2 },
   container: { flex: 1 },
   fullyReserved: {
     flexDirection: 'row',

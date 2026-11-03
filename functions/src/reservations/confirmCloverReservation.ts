@@ -1,5 +1,5 @@
 import * as functions from 'firebase-functions/v2'
-import { db, FieldValue } from '../db'
+import { db } from '../db'
 
 export const confirmCloverReservation = functions.https.onCall(
   { invoker: 'public' },
@@ -35,8 +35,8 @@ export const confirmCloverReservation = functions.https.onCall(
 
     const reservationRef = db.collection('reservations').doc(reservationId)
 
-    const result = await db.runTransaction(async (tx) => {
-      const snap = await tx.get(reservationRef)
+    const result = await (async () => {
+      const snap = await reservationRef.get()
       if (!snap.exists) {
         throw new functions.https.HttpsError('not-found', 'Reservation not found')
       }
@@ -60,14 +60,10 @@ export const confirmCloverReservation = functions.https.onCall(
         feeCents: reservation.feeCents ?? 0,
       }
 
+      // Read-only: only Clover's signed webhook (server/) marks a reservation paid. Returning from
+      // Clover proves nothing — the session id is known to the browser before payment.
       if (status === 'pending') {
-        const paymentId = String(reservation.cloverPaymentId ?? '').trim() || checkoutSessionId
-        tx.update(reservationRef, {
-          status: 'confirmed',
-          cloverPaymentId: paymentId,
-          updatedAt: FieldValue.serverTimestamp(),
-        })
-        return { ...summary, status: 'confirmed' as const }
+        return { ...summary, status: 'pending' as const }
       }
 
       if (status === 'confirmed') {
@@ -75,9 +71,9 @@ export const confirmCloverReservation = functions.https.onCall(
       }
 
       throw new functions.https.HttpsError('failed-precondition', `Reservation is ${status}`)
-    })
+    })()
 
-    functions.logger.info('Clover reservation confirmed after checkout redirect', {
+    functions.logger.info('Clover reservation status checked after checkout redirect', {
       reservationId: result.reservationId,
       checkoutSessionId,
       uid: auth.uid,

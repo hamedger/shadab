@@ -44,6 +44,11 @@ export interface Reservation {
   cloverMerchantId?: string
   cloverCheckoutSessionId?: string
   cloverPaymentId?: string
+  /** 'checkout_abandoned' when an unpaid Clover checkout was released after 30 minutes. */
+  cancelReason?: string
+  /** Paid after its checkout was released and the block had filled — refund in Clover. */
+  needsRefund?: boolean
+  refundReason?: string
   createdAt?: Timestamp | null
   updatedAt?: Timestamp | null
 }

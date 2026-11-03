@@ -46,10 +46,9 @@ export default function CheckoutSuccessScreen() {
     if (!checkoutSessionId) return
 
     let cancelled = false
-    // Retry a few times with backoff: the confirm call can hit a cold Cloud Function
-    // instance, and a single silent failure here means the order may never show up
-    // for staff even though the customer was charged.
-    const delaysMs = [0, 2000, 5000]
+    // Only Clover's signed webhook marks the order paid, so poll until it lands (usually a few
+    // seconds). Errors (e.g. a cold Cloud Function) are retried on the same schedule.
+    const delaysMs = [0, 2000, 3000, 5000, 5000, 10000, 10000, 15000]
 
     const attempt = async () => {
       for (let i = 0; i < delaysMs.length; i++) {
@@ -61,13 +60,13 @@ export default function CheckoutSuccessScreen() {
             params.orderId?.trim(),
           )
           if (cancelled) return
-          if (result) {
+          if (result && result.status !== 'pending') {
             setConfirmed(result)
             setConfirmFailed(false)
             return
           }
         } catch (error) {
-          console.error('[checkout/success] confirmCloverOrder attempt failed', {
+          console.error('[checkout/success] order status check failed', {
             attempt: i + 1,
             checkoutSessionId,
             orderId: params.orderId,
@@ -111,16 +110,18 @@ export default function CheckoutSuccessScreen() {
           <Ionicons name="checkmark" size={36} color={colors.background} />
         </View>
 
-        <Text style={styles.title}>Payment Confirmed!</Text>
+        <Text style={styles.title}>
+          {confirmed ? 'Payment Confirmed!' : confirmFailed ? 'Payment Not Confirmed Yet' : 'Confirming Your Payment…'}
+        </Text>
         <Text style={styles.orderId}>Order #{displayOrderId}</Text>
 
         {confirmFailed ? (
           <View style={styles.confirmErrorBanner}>
             <Ionicons name="alert-circle-outline" size={18} color={colors.error} />
             <Text style={styles.confirmErrorText}>
-              Your payment went through, but we had trouble syncing this order automatically.
-              Please call {RESTAURANT_PHONE} with your order number above to make sure the
-              restaurant has it.
+              We haven&apos;t received Clover&apos;s payment confirmation yet. If you completed
+              payment, your order will show up shortly — or call {RESTAURANT_PHONE} with your
+              order number above and we&apos;ll check it for you.
             </Text>
           </View>
         ) : null}

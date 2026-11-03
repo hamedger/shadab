@@ -6,7 +6,7 @@ import {
   orderNotificationInputFromDoc,
 } from '../email/orderNotificationInput'
 import { getResendMailConfig, resendApiKey } from '../email/resendConfig'
-import { hasOrderPayment, resolveCloverPaymentId } from './orderPayment'
+import { hasOrderPayment } from './orderPayment'
 
 const POST_PAYMENT_STATUSES = new Set([
   'placed',
@@ -83,8 +83,8 @@ export const confirmCloverOrder = functions.https.onCall(
 
     const orderRef = db.collection('orders').doc(orderId)
 
-    const confirmResult = await db.runTransaction(async (tx) => {
-      const snap = await tx.get(orderRef)
+    const confirmResult = await (async () => {
+      const snap = await orderRef.get()
       if (!snap.exists) {
         throw new functions.https.HttpsError('not-found', 'Order not found')
       }
@@ -100,10 +100,6 @@ export const confirmCloverOrder = functions.https.onCall(
       }
 
       const status = String(order.status ?? '')
-      const paymentId = resolveCloverPaymentId(order.cloverPaymentId, checkoutSessionId)
-      const needsPaymentBackfill = !String(order.cloverPaymentId ?? '').trim() && !!paymentId
-      const needsStaffNotify = order.staffNotified !== true
-
       const summary = {
         fulfillmentType: order.fulfillmentType,
         total: order.total,
@@ -113,34 +109,25 @@ export const confirmCloverOrder = functions.https.onCall(
         pickupTime: order.pickupTime ?? null,
       }
 
+      // Read-only: only Clover's signed webhook (server/) marks an order paid. Returning from
+      // Clover proves nothing — the session id is known to the browser before payment.
       if (status === 'pending') {
-        tx.update(orderRef, {
-          status: 'placed',
-          cloverPaymentId: paymentId,
-          updatedAt: FieldValue.serverTimestamp(),
-        })
-        return { orderId, status: 'placed' as const, needsStaffNotify: true, ...summary }
+        return { orderId, status: 'pending' as const, needsStaffNotify: false, ...summary }
       }
 
       if (POST_PAYMENT_STATUSES.has(status)) {
-        if (needsPaymentBackfill) {
-          tx.update(orderRef, {
-            cloverPaymentId: paymentId,
-            updatedAt: FieldValue.serverTimestamp(),
-          })
-        }
         return {
           orderId,
           status,
-          needsStaffNotify: needsStaffNotify && (needsPaymentBackfill || hasOrderPayment(order)),
+          needsStaffNotify: order.staffNotified !== true && hasOrderPayment(order),
           ...summary,
         }
       }
 
       throw new functions.https.HttpsError('failed-precondition', `Order is ${status}`)
-    })
+    })()
 
-    functions.logger.info('Clover order placed after checkout redirect', {
+    functions.logger.info('Clover order status checked after checkout redirect', {
       orderId: confirmResult.orderId,
       checkoutSessionId,
       uid: auth.uid,

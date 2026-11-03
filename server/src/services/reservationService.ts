@@ -232,7 +232,15 @@ export async function markReservationPaidByCheckoutSession(
   const doc = snapshot.docs[0]
   const data = doc.data()
 
-  if (data.status === 'cancelled') return null
+  if (data.status === 'cancelled') {
+    // Paid after the abandoned-checkout cleanup released the seats: re-book if they're still
+    // free, otherwise keep it cancelled and flag it so staff refund it in Clover.
+    if (data.cancelReason === 'checkout_abandoned') {
+      await reinstateLatePaidReservation(doc.ref, paymentId || checkoutSessionId)
+      return doc.id
+    }
+    return null
+  }
   if (data.status === 'confirmed') return doc.id
 
   await doc.ref.update({
@@ -242,6 +250,40 @@ export async function markReservationPaidByCheckoutSession(
   })
 
   return doc.id
+}
+
+async function reinstateLatePaidReservation(
+  ref: FirebaseFirestore.DocumentReference,
+  paymentId: string,
+): Promise<void> {
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref)
+    const data = snap.data()
+    if (!data || data.status !== 'cancelled' || data.cancelReason !== 'checkout_abandoned') return
+
+    const blockId = String(data.capacityBlockId ?? '')
+    const partySize = Number(data.partySize ?? 0)
+    const capacityRef = blockId ? db.collection('reservationCapacity').doc(blockId) : null
+    const capacity = capacityRef ? await tx.get(capacityRef) : null
+    const seatsLeft = getReservationSeatsLeft(Number(capacity?.data()?.guests ?? 0))
+
+    if (capacityRef && partySize > 0 && partySize <= seatsLeft) {
+      tx.set(capacityRef, { guests: FieldValue.increment(partySize) }, { merge: true })
+      tx.update(ref, {
+        status: 'confirmed',
+        cloverPaymentId: paymentId,
+        cancelReason: FieldValue.delete(),
+        updatedAt: FieldValue.serverTimestamp(),
+      })
+    } else {
+      tx.update(ref, {
+        cloverPaymentId: paymentId,
+        needsRefund: true,
+        refundReason: 'Paid after the checkout expired and the seating block was full',
+        updatedAt: FieldValue.serverTimestamp(),
+      })
+    }
+  })
 }
 
 export async function markReservationDeclinedByCheckoutSession(

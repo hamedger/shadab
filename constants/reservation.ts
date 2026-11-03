@@ -22,10 +22,9 @@ import { formatPhoneDisplay } from '../lib/locationUtils'
 export type { BuffetMeal, ReservationGuests } from './buffetSchedule'
 
 /**
- * Off while Clover isn't available: reservations are booked free and paid at the restaurant.
- * Flip to true to send guests through Clover Hosted Checkout again (server + webhook still in place).
+ * On: guests prepay through Clover Hosted Checkout. Set false to book free and pay at the restaurant.
  */
-export const RESERVATION_PREPAYMENT_ENABLED = false
+export const RESERVATION_PREPAYMENT_ENABLED = true
 
 /** Shown on the reservation form and confirmation when nothing is charged online. */
 /** How long a table is held past the seating time before it is released. */
