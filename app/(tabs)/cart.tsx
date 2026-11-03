@@ -18,7 +18,7 @@ import { TipSelector } from '../../components/cart/TipSelector'
 import { loyaltyDiscountCents } from '../../lib/services/loyaltyService'
 import { TAXES_AND_FEES_LABEL } from '../../lib/services/cartService'
 import { CONTENT_MAX_WIDTH } from '../../constants/checkout'
-import { DELIVERY_ENABLED, ONLINE_ORDERING_COMING_SOON_LABEL, ONLINE_ORDERING_ENABLED } from '../../constants/config'
+import { DELIVERY_ENABLED, ONLINE_ORDERING_ENABLED } from '../../constants/config'
 import { colors, spacing, borderRadius, fonts } from '../../constants/theme'
 import { Button } from '../../components/ui/Button'
 import { OrderItem } from '../../types/order'
@@ -26,6 +26,9 @@ import { useSelectedLocation } from '../../hooks/useSelectedLocation'
 import { LocationConfirmCard } from '../../components/location/LocationConfirmCard'
 import { PickupScheduler } from '../../components/checkout/PickupScheduler'
 import { formatLocationAddress, getOrderFulfillmentHours, getPickupPrepBufferMinutes } from '../../lib/locationUtils'
+import { openCloverOnlineOrdering } from '../../lib/onlineOrdering'
+import { useCloverOrdering } from '../../hooks/useCloverOrdering'
+import { ONLINE_ORDERING_COMING_SOON_LABEL } from '../../constants/config'
 
 function CartRow({
   item,
@@ -116,6 +119,7 @@ function SummaryRow({
 export default function CartScreen() {
   const router = useRouter()
   const cart = useCart()
+  const clover = useCloverOrdering()
   const { firebaseUser, userProfile } = useAuth()
   const [promoInput, setPromoInput] = useState('')
   const itemCount = cart.itemCount()
@@ -266,9 +270,13 @@ export default function CartScreen() {
             <Text style={styles.checkoutTotal}>${(cart.total / 100).toFixed(2)}</Text>
           </View>
           <Button
-            label={ONLINE_ORDERING_ENABLED ? 'Checkout' : ONLINE_ORDERING_COMING_SOON_LABEL}
-            onPress={() => router.push('/checkout' as never)}
-            disabled={!ONLINE_ORDERING_ENABLED}
+            label={ONLINE_ORDERING_ENABLED ? 'Checkout' : clover.url ? 'Order Online' : ONLINE_ORDERING_COMING_SOON_LABEL}
+            onPress={() =>
+              ONLINE_ORDERING_ENABLED
+                ? router.push('/checkout' as never)
+                : clover.url && openCloverOnlineOrdering(clover.url)
+            }
+            disabled={!ONLINE_ORDERING_ENABLED && !clover.url}
             size="lg"
             style={styles.checkoutBtn}
           />

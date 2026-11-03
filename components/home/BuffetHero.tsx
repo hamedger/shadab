@@ -16,7 +16,6 @@ import { RESTAURANT_STATS } from '../../constants/home'
 import { FullyReservedNotice } from '../shared/FullyReservedNotice'
 import {
   APP_TAGLINE,
-  ONLINE_ORDERING_COMING_SOON_LABEL,
   ONLINE_ORDERING_ENABLED,
   OWNERSHIP_NOTE,
   RESTAURANT_FULL_NAME,
@@ -25,6 +24,9 @@ import { isOpen24HoursOn } from '../../constants/config'
 import { BREAKFAST_AND_24_HOURS_START_LABEL } from '../../constants/buffetSchedule'
 import { colors, spacing, borderRadius, fonts } from '../../constants/theme'
 import { blurActiveElementOnWeb } from '../../lib/a11y'
+import { openCloverOnlineOrdering } from '../../lib/onlineOrdering'
+import { useCloverOrdering } from '../../hooks/useCloverOrdering'
+import { ONLINE_ORDERING_COMING_SOON_LABEL } from '../../constants/config'
 
 const BG_IMAGE = require('../../assets/hero/hyderbadi_goat_dum_biryani.png')
 const WIDE_BREAKPOINT = 720
@@ -38,6 +40,7 @@ export function BuffetHero() {
   const { width } = useWindowDimensions()
   const isWide = width >= WIDE_BREAKPOINT
   const { isOpen, currentPrice, nextSessionLabel, countdownMinutes, isLoading } = useBuffet()
+  const clover = useCloverOrdering()
 
   const pulse = useSharedValue(1)
 
@@ -95,7 +98,19 @@ export function BuffetHero() {
         </TouchableOpacity>
 
         <View style={styles.ctaRow}>
-          {!ONLINE_ORDERING_ENABLED ? (
+          {!ONLINE_ORDERING_ENABLED && clover.url ? (
+            <TouchableOpacity
+              style={styles.cta}
+              onPress={() => {
+                blurActiveElementOnWeb()
+                openCloverOnlineOrdering(clover.url!)
+              }}
+              accessibilityRole="link"
+              accessibilityLabel="Order online now"
+            >
+              <Text style={styles.ctaText}>Order Online</Text>
+            </TouchableOpacity>
+          ) : !ONLINE_ORDERING_ENABLED ? (
             <View style={[styles.cta, styles.ctaSoon]} accessibilityRole="text">
               <Text style={styles.ctaText}>{ONLINE_ORDERING_COMING_SOON_LABEL}</Text>
             </View>
@@ -256,13 +271,13 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     marginBottom: spacing.xxl,
   },
+  ctaSoon: { opacity: 0.75 },
   cta: {
     backgroundColor: colors.gold,
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.md,
     borderRadius: borderRadius.full,
   },
-  ctaSoon: { opacity: 0.75 },
   ctaText: {
     fontFamily: fonts.sansBold,
     color: colors.background,

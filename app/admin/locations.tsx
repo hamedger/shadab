@@ -27,6 +27,8 @@ const EMPTY_FORM = {
   isActive: true,
   acceptsDelivery: true,
   acceptsPickup: true,
+  onlineOrderingUrl: '',
+  onlineOrderingEnabled: false,
   pickupPrepBufferMinutes: '30',
 }
 
@@ -59,6 +61,8 @@ export default function AdminLocationsScreen() {
       isActive: location.isActive,
       acceptsDelivery: location.acceptsDelivery,
       acceptsPickup: location.acceptsPickup,
+      onlineOrderingUrl: location.onlineOrderingUrl ?? '',
+      onlineOrderingEnabled: location.onlineOrderingEnabled ?? false,
       pickupPrepBufferMinutes: String(location.pickupPrepBufferMinutes ?? 30),
     })
   }
@@ -80,6 +84,16 @@ export default function AdminLocationsScreen() {
       return
     }
 
+    const orderingUrl = form.onlineOrderingUrl.trim()
+    if (orderingUrl && !/^https:\/\/\S+\.\S+$/i.test(orderingUrl)) {
+      Alert.alert('Invalid Clover URL', 'Use the full https:// link to your Clover Online Ordering page.')
+      return
+    }
+    if (form.onlineOrderingEnabled && !orderingUrl) {
+      Alert.alert('Clover URL needed', 'Add the Clover Online Ordering URL before turning on the redirect.')
+      return
+    }
+
     setSaving(true)
     try {
       const payload = {
@@ -89,6 +103,8 @@ export default function AdminLocationsScreen() {
         isActive: form.isActive,
         acceptsDelivery: form.acceptsDelivery,
         acceptsPickup: form.acceptsPickup,
+        onlineOrderingUrl: form.onlineOrderingUrl.trim(),
+        onlineOrderingEnabled: form.onlineOrderingEnabled,
         pickupPrepBufferMinutes,
         acceptsReservations: true,
         acceptsCatering: true,
@@ -217,6 +233,20 @@ export default function AdminLocationsScreen() {
                 label="Accepts pickup"
                 value={form.acceptsPickup}
                 onValueChange={(acceptsPickup) => setForm((f) => ({ ...f, acceptsPickup }))}
+              />
+              <Input
+                label="Clover Online Ordering URL"
+                value={form.onlineOrderingUrl}
+                onChangeText={(onlineOrderingUrl) => setForm((f) => ({ ...f, onlineOrderingUrl }))}
+                placeholder="https://your-store.cloveronline.com"
+                autoCapitalize="none"
+              />
+              <ToggleRow
+                label="Redirect ordering to Clover (instead of in-app cart)"
+                value={form.onlineOrderingEnabled}
+                onValueChange={(onlineOrderingEnabled) =>
+                  setForm((f) => ({ ...f, onlineOrderingEnabled }))
+                }
               />
               <View style={styles.formActions}>
                 <Button label="Cancel" variant="ghost" onPress={cancelEdit} />

@@ -21,8 +21,10 @@ export const ORDERS_NOTIFICATION_EMAIL = 'orders@shadab.com'
 export const DEFAULT_LOCATION_ID = 'chicago-il'
 
 /**
- * Online food ordering (pickup) needs Clover payments. Until Clover is ready, every
- * "Order Online" entry point shows a coming-soon notice and add-to-cart/checkout are hidden.
+ * On-site cart + checkout (Clover Hosted Checkout). Off: add-to-cart/checkout are hidden. Food
+ * orders then go to the location's Clover Online Ordering page when Admin → Locations has
+ * "Redirect ordering to Clover" on (see useCloverOrdering); otherwise "coming soon" is shown.
+ * Reservations prepay through Clover Hosted Checkout either way.
  */
 export const ONLINE_ORDERING_ENABLED = false
 export const ONLINE_ORDERING_COMING_SOON_LABEL = 'Online Ordering Coming Soon'

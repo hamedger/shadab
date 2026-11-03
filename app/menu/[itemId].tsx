@@ -17,6 +17,7 @@ import { isMenuItemOrderable } from '../../lib/menuMerge'
 import { useCartStore } from '../../store/cartStore'
 import { resolveMenuItemImage } from '../../lib/menuImages'
 import { ONLINE_ORDERING_COMING_SOON_LABEL, ONLINE_ORDERING_ENABLED } from '../../constants/config'
+import { useCloverOrdering } from '../../hooks/useCloverOrdering'
 import { colors, spacing, borderRadius, fonts } from '../../constants/theme'
 import { Badge } from '../../components/ui/Badge'
 import { HalalBadge } from '../../components/brand/HalalBadge'
@@ -24,6 +25,7 @@ import { Button } from '../../components/ui/Button'
 import { BackButton } from '../../components/navigation/BackButton'
 import { CartNavButton } from '../../components/navigation/CartNavButton'
 import { DishPhotoDisclaimer } from '../../components/menu/DishPhotoDisclaimer'
+import { CloverOrderButtons } from '../../components/menu/CloverOrderButtons'
 
 const CONTENT_MAX = 640
 const SPICE_ICONS = ['', '🌶️', '🌶️🌶️', '🌶️🌶️🌶️']
@@ -33,6 +35,7 @@ export default function ItemDetailScreen() {
   const router = useRouter()
   const { width: windowWidth } = useWindowDimensions()
   const { locationId } = useSelectedLocation()
+  const clover = useCloverOrdering()
   const { data: item, isLoading } = useMenuItem(itemId, locationId)
   const { data: menuItems = [] } = useMenu(locationId)
 
@@ -225,7 +228,9 @@ export default function ItemDetailScreen() {
 
       <View style={styles.footer}>
         <View style={[styles.footerInner, { maxWidth: CONTENT_MAX }]}>
-          {!ONLINE_ORDERING_ENABLED ? (
+          {!ONLINE_ORDERING_ENABLED && clover.url ? (
+            <CloverOrderButtons orderingUrl={clover.url} />
+          ) : !ONLINE_ORDERING_ENABLED ? (
             <View style={styles.unavailableFooter}>
               <Text style={styles.unavailableTitle}>{ONLINE_ORDERING_COMING_SOON_LABEL}</Text>
               <Text style={styles.unavailableText}>Visit us for dine-in or call ahead to order.</Text>

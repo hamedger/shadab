@@ -154,6 +154,12 @@ export function isLocationActive(location: Location): boolean {
   return location.isActive !== false
 }
 
+/** True when food ordering for this location should redirect to Clover Online Ordering
+ * instead of the in-app cart/checkout. Single source of truth for that gate. */
+export function usesCloverOnlineOrdering(location: Location | null | undefined): boolean {
+  return Boolean(location?.onlineOrderingEnabled && location?.onlineOrderingUrl?.trim())
+}
+
 /** Keep all static pickable locations; overlay Firestore fields when present. */
 export function mergePickableLocations(remote: Location[]): Location[] {
   const byId = new Map<string, Location>()

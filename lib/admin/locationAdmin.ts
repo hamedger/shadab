@@ -28,6 +28,8 @@ function defaultLocationPayload(id: string, input: Partial<LocationInput>): Loca
     acceptsPickup: input.acceptsPickup ?? true,
     acceptsReservations: input.acceptsReservations ?? true,
     acceptsCatering: input.acceptsCatering ?? true,
+    onlineOrderingUrl: input.onlineOrderingUrl?.trim() ?? '',
+    onlineOrderingEnabled: input.onlineOrderingEnabled ?? false,
     deliveryRadius: input.deliveryRadius ?? 10,
     timezone: input.timezone ?? 'America/Chicago',
     pickupPrepBufferMinutes: input.pickupPrepBufferMinutes ?? DEFAULT_PICKUP_PREP_BUFFER_MINUTES,
@@ -92,8 +94,9 @@ export async function saveLocation(input: LocationInput): Promise<string> {
 export async function updateLocation(locationId: string, patch: Partial<LocationInput>): Promise<void> {
   if (!isFirebaseConfigured) throw new Error('Firebase is not configured')
 
-  await updateDoc(doc(db, 'locations', locationId), {
+  // merge: the built-in location may not have a Firestore doc yet (updateDoc would fail).
+  await setDoc(doc(db, 'locations', locationId), {
     ...patch,
     updatedAt: serverTimestamp(),
-  })
+  }, { merge: true })
 }

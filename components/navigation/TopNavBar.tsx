@@ -6,8 +6,11 @@ import { HeaderPhones } from './HeaderPhones'
 import { HalalBadge } from '../brand/HalalBadge'
 import { useCartStore } from '../../store/cartStore'
 import { CartBadge } from '../cart/CartBadge'
-import { ONLINE_ORDERING_COMING_SOON_LABEL, ONLINE_ORDERING_ENABLED } from '../../constants/config'
+import { ONLINE_ORDERING_ENABLED } from '../../constants/config'
 import { colors, fonts, spacing } from '../../constants/theme'
+import { openCloverOnlineOrdering } from '../../lib/onlineOrdering'
+import { useCloverOrdering } from '../../hooks/useCloverOrdering'
+import { ONLINE_ORDERING_COMING_SOON_LABEL } from '../../constants/config'
 
 const NAV_LINKS: { href: string; label: string }[] = [
   { href: '/', label: 'Home' },
@@ -27,6 +30,7 @@ export function TopNavBar() {
   const pathname = usePathname()
   const router = useRouter()
   const itemCount = useCartStore((s) => s.itemCount())
+  const clover = useCloverOrdering()
 
   return (
     <View style={styles.bar}>
@@ -67,10 +71,20 @@ export function TopNavBar() {
         >
           <Ionicons name="person-outline" size={20} color={colors.gold} />
         </TouchableOpacity>
-        {!ONLINE_ORDERING_ENABLED ? (
+        {!ONLINE_ORDERING_ENABLED && !clover.url ? (
           <View style={[styles.cartBtn, styles.cartBtnSoon]} accessibilityRole="text">
             <Text style={styles.cartLabel}>{ONLINE_ORDERING_COMING_SOON_LABEL}</Text>
           </View>
+        ) : !ONLINE_ORDERING_ENABLED ? (
+          <TouchableOpacity
+            style={styles.cartBtn}
+            onPress={() => openCloverOnlineOrdering(clover.url!)}
+            accessibilityRole="link"
+            accessibilityLabel="Order online"
+          >
+            <Ionicons name="cart-outline" size={20} color={colors.background} />
+            <Text style={styles.cartLabel}>Order Online</Text>
+          </TouchableOpacity>
         ) : (
           <TouchableOpacity
             style={styles.cartBtn}
@@ -89,6 +103,7 @@ export function TopNavBar() {
 }
 
 const styles = StyleSheet.create({
+  cartBtnSoon: { opacity: 0.75 },
   bar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -157,7 +172,6 @@ const styles = StyleSheet.create({
     borderRadius: 9999,
     marginLeft: spacing.xs,
   },
-  cartBtnSoon: { opacity: 0.75 },
   cartLabel: {
     fontFamily: fonts.sansBold,
     fontSize: 12,

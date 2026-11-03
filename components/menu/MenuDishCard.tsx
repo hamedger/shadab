@@ -9,6 +9,8 @@ import { isMenuItemOrderable } from '../../lib/menuMerge'
 import { useCartStore } from '../../store/cartStore'
 import { ONLINE_ORDERING_ENABLED } from '../../constants/config'
 import { colors, spacing, borderRadius, fonts } from '../../constants/theme'
+import { openCloverOnlineOrdering } from '../../lib/onlineOrdering'
+import { useCloverOrdering } from '../../hooks/useCloverOrdering'
 
 interface MenuDishCardProps {
   item: MenuItem
@@ -23,6 +25,7 @@ export function MenuDishCard({ item, width }: MenuDishCardProps) {
   const addItem = useCartStore((s) => s.addItem)
   const updateQuantity = useCartStore((s) => s.updateQuantity)
   const orderable = isMenuItemOrderable(item)
+  const clover = useCloverOrdering()
 
   const price = `$${(item.price / 100).toFixed(2)}`
   const imageUri = resolveMenuItemImage(item)
@@ -78,10 +81,19 @@ export function MenuDishCard({ item, width }: MenuDishCardProps) {
         </View>
       </Pressable>
 
-      {!ONLINE_ORDERING_ENABLED ? (
+      {!ONLINE_ORDERING_ENABLED && !clover.url ? (
         <View style={styles.qtyBar}>
           <Text style={styles.unavailableLabel}>Ordering soon</Text>
         </View>
+      ) : !ONLINE_ORDERING_ENABLED ? (
+        <TouchableOpacity
+          style={styles.qtyBar}
+          onPress={() => openCloverOnlineOrdering(clover.url!)}
+          accessibilityRole="link"
+          accessibilityLabel={`Order ${item.name} online`}
+        >
+          <Text style={styles.unavailableLabel}>Order online →</Text>
+        </TouchableOpacity>
       ) : !orderable && quantity === 0 ? (
         <View style={styles.qtyBar}>
           <Text style={styles.unavailableLabel}>Unavailable</Text>

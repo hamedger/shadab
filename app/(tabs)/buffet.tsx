@@ -70,8 +70,8 @@ export default function BuffetScreen() {
         title="The Buffet"
         subtitle={
           isOpen24HoursOn()
-            ? 'A dinner buffet 6:30 PM–1 AM every day — breakfast and lunch buffets coming soon. Open 24 hours for dine-in. Online ordering coming soon.'
-            : `A dinner buffet 6:30 PM–1 AM every day — breakfast and lunch buffets coming soon. 24-hour service starts ${BREAKFAST_AND_24_HOURS_START_LABEL}. Online ordering coming soon.`
+            ? 'A dinner buffet 6:30 PM–1 AM every day — breakfast and lunch buffets coming soon. Open 24 hours for dine-in. Order online for pickup or delivery.'
+            : `A dinner buffet 6:30 PM–1 AM every day — breakfast and lunch buffets coming soon. 24-hour service starts ${BREAKFAST_AND_24_HOURS_START_LABEL}. Order online for pickup or delivery.`
         }
       />
 

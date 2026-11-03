@@ -28,6 +28,10 @@ export interface Location {
   acceptsPickup: boolean
   acceptsReservations: boolean
   acceptsCatering: boolean
+  /** Clover Online Ordering page URL for this location (its own Clover merchant account). */
+  onlineOrderingUrl?: string
+  /** When true (and onlineOrderingUrl is set), food ordering redirects to Clover instead of the in-app cart. */
+  onlineOrderingEnabled?: boolean
   deliveryRadius: number
   timezone: string
   /** Minutes before earliest same-day pickup slot (ASAP still uses checkout ETA). */

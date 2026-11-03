@@ -35,6 +35,9 @@ export const STATIC_LOCATIONS: Location[] = [
     acceptsPickup: true,
     acceptsReservations: true,
     acceptsCatering: true,
+    // Default until an admin edits it in Admin → Locations (Firestore overrides these).
+    onlineOrderingUrl: 'https://shadaab-restaurant-chicago.cloveronline.com',
+    onlineOrderingEnabled: true,
     deliveryRadius: 10,
     timezone: 'America/Chicago',
     pickupPrepBufferMinutes: DEFAULT_PICKUP_PREP_BUFFER_MINUTES,

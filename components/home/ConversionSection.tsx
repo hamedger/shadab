@@ -4,6 +4,9 @@ import { useRouter } from 'expo-router'
 import { OrderOnlinePicker } from '../location/OrderOnlinePicker'
 import { ONLINE_ORDERING_ENABLED } from '../../constants/config'
 import { colors, spacing, borderRadius, fonts } from '../../constants/theme'
+import { RESERVATION_PREPAYMENT_ENABLED } from '../../constants/reservation'
+import { openCloverOnlineOrdering } from '../../lib/onlineOrdering'
+import { useCloverOrdering } from '../../hooks/useCloverOrdering'
 
 interface ConversionCard {
   title: string
@@ -18,14 +21,16 @@ const CONVERSION_CARDS: ConversionCard[] = [
     title: 'Order Online',
     description: ONLINE_ORDERING_ENABLED
       ? 'Order for pickup — browse our full Hyderabadi menu.'
-      : 'Online ordering is coming soon. Browse our full Hyderabadi menu in the meantime.',
+      : 'Order pickup or delivery online — our full Hyderabadi menu, ready when you are.',
     cta: 'Start Order',
     route: '/(tabs)/menu',
     accent: true,
   },
   {
     title: 'Reserve a Table',
-    description: 'Book your buffet table and skip the wait — pay at the restaurant. No reservation = seating not guaranteed.',
+    description: RESERVATION_PREPAYMENT_ENABLED
+      ? 'Book and prepay your buffet table online and skip the wait. No reservation = seating not guaranteed.'
+      : 'Book your buffet table and skip the wait — pay at the restaurant. No reservation = seating not guaranteed.',
     cta: 'Make Reservation',
     route: '/reservation',
   },
@@ -45,6 +50,7 @@ const CONVERSION_CARDS: ConversionCard[] = [
 
 export function ConversionSection() {
   const router = useRouter()
+  const clover = useCloverOrdering()
 
   return (
     <View style={styles.section}>
@@ -56,8 +62,20 @@ export function ConversionSection() {
           style={[styles.card, card.accent && styles.cardAccent]}
         >
           <Text style={styles.cardTitle}>{card.title}</Text>
-          <Text style={styles.cardDescription}>{card.description}</Text>
-          {card.accent && !ONLINE_ORDERING_ENABLED ? (
+          <Text style={styles.cardDescription}>
+            {card.accent && !ONLINE_ORDERING_ENABLED && !clover.url
+              ? 'Online ordering is coming soon. Browse our full Hyderabadi menu in the meantime.'
+              : card.description}
+          </Text>
+          {card.accent && !ONLINE_ORDERING_ENABLED && clover.url ? (
+            <TouchableOpacity
+              onPress={() => openCloverOnlineOrdering(clover.url!)}
+              accessibilityRole="link"
+              accessibilityLabel={card.cta}
+            >
+              <Text style={styles.cardCta}>{card.cta} →</Text>
+            </TouchableOpacity>
+          ) : card.accent && !ONLINE_ORDERING_ENABLED ? (
             <TouchableOpacity
               onPress={() => router.push('/(tabs)/menu' as never)}
               accessibilityRole="button"
