@@ -37,6 +37,7 @@ const NAV_ITEMS = [
   { href: '/admin/locations', label: 'Locations', icon: 'location-outline' as const },
   { href: '/admin/menu', label: 'Menu', icon: 'restaurant-outline' as const },
   { href: '/admin/buffet', label: 'Buffet', icon: 'fast-food-outline' as const },
+  { href: '/admin/refills', label: 'Refills', icon: 'timer-outline' as const },
 ]
 
 interface AdminShellProps {

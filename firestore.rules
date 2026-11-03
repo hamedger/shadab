@@ -60,6 +60,11 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // Buffet refill request → restock log (Admin → Refills analytics). Staff only.
+    match /buffetRefills/{refillId} {
+      allow read, write: if isAdmin();
+    }
+
     // Orders — authenticated create/read own, admin manage; loyalty fields server-only on update
     match /orders/{orderId} {
       allow create: if request.auth != null

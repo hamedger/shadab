@@ -50,6 +50,23 @@ export const BUFFET_SECTIONS = [
     ],
   },
   {
+    id: 'todays-specials',
+    title: "Today's Specials",
+    items: [
+      { menuItemId: 'fish-fry', displayName: 'Fish Fry' },
+      { menuItemId: 'chicken-alfredo-pasta', displayName: 'Chicken Alfredo Pasta' },
+      { menuItemId: 'chicken-achari', displayName: 'Achari Chicken' },
+      { menuItemId: 'chicken-puff', displayName: 'Chicken Puff' },
+      { menuItemId: 'chicken-cheese-rolls', displayName: 'Chicken Cheese Rolls' },
+      { menuItemId: 'chicken-noodles-fry', displayName: 'Chicken Noodles Fry' },
+      { menuItemId: 'chicken-manchurian', displayName: 'Chicken Manchurian' },
+      { menuItemId: 'chicken-65', displayName: 'Chicken 65' },
+      { menuItemId: 'mirchi-fry', displayName: 'Mirchi Fry' },
+      { menuItemId: 'fish-sticks', displayName: 'Fish Sticks' },
+      { menuItemId: 'potato-tots', displayName: 'Potato Tots (Kids Special)' },
+    ],
+  },
+  {
     id: 'breads',
     title: 'Breads',
     items: [{ menuItemId: 'butter-naan', displayName: 'Butter Naan' }],

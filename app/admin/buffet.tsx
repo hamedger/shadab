@@ -9,7 +9,8 @@ import {
   TextInput,
   TouchableOpacity,
 } from 'react-native'
-import { doc, onSnapshot, updateDoc, serverTimestamp } from 'firebase/firestore'
+import { doc, onSnapshot, updateDoc, serverTimestamp, writeBatch } from 'firebase/firestore'
+import { logRefillClosed, logRefillRequested } from '../../lib/admin/refillLog'
 import { db } from '../../lib/firebase'
 import { BuffetConfig } from '../../types/buffet'
 import { MenuItem } from '../../types/menu'
@@ -134,12 +135,18 @@ export default function AdminBuffetScreen() {
         return
       }
 
-      await updateDoc(buffetRef, {
+      // Red → green closes the refill record; green → red opens one (feeds Admin → Refills).
+      const batch = writeBatch(db)
+      const patch = isBuffetDishNeedsRefill(existing)
+        ? logRefillClosed(batch, existing, 'completed')
+        : logRefillRequested(batch, locationId, existing)
+      batch.update(buffetRef, {
         todaysDishes: cfg.todaysDishes.map((d) =>
-          d.menuItemId === item.id ? { ...d, needsRefill: !isBuffetDishNeedsRefill(d) } : d,
+          d.menuItemId === item.id ? { ...d, ...patch } : d,
         ),
         updatedAt: serverTimestamp(),
       })
+      await batch.commit()
     } catch (e) {
       Alert.alert('Update failed', e instanceof Error ? e.message : 'Could not update refill status')
     } finally {
@@ -165,10 +172,16 @@ export default function AdminBuffetScreen() {
               setRefillBusyId(item.id)
               try {
                 const latest = await getConfig()
-                await updateDoc(buffetRef, {
+                const removed = latest.todaysDishes.find((d) => d.menuItemId === item.id)
+                const batch = writeBatch(db)
+                if (removed && isBuffetDishNeedsRefill(removed)) {
+                  logRefillClosed(batch, removed, 'cancelled')
+                }
+                batch.update(buffetRef, {
                   todaysDishes: latest.todaysDishes.filter((d) => d.menuItemId !== item.id),
                   updatedAt: serverTimestamp(),
                 })
+                await batch.commit()
               } catch (e) {
                 Alert.alert(
                   'Update failed',
@@ -397,7 +410,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontFamily: fonts.sansBold,
-    color: colors.white,
+    color: '#000000',
     fontSize: 15,
   },
   legendHint: {
@@ -439,7 +452,7 @@ const styles = StyleSheet.create({
   },
   categoryTitle: {
     fontFamily: fonts.sansBold,
-    color: colors.goldLight,
+    color: '#000000',
     fontSize: 13,
     letterSpacing: 0.4,
     marginBottom: spacing.xs,

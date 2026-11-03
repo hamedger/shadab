@@ -14,6 +14,31 @@ export interface BuffetDish {
   needsRefill?: boolean
   /** Display section on the buffet board. */
   buffetCategory?: BuffetSectionId
+  /** Epoch ms when the current refill was requested (set while needsRefill is true). */
+  refillRequestedAt?: number | null
+  /** `buffetRefills` doc id for the open refill (set while needsRefill is true). */
+  refillEventId?: string | null
+}
+
+export type BuffetRefillStatus = 'open' | 'completed' | 'cancelled'
+
+/** One refill request → restock cycle, stored in the `buffetRefills` collection. */
+export interface BuffetRefillEvent {
+  id: string
+  locationId: string
+  menuItemId: string
+  dishName: string
+  status: BuffetRefillStatus
+  requestedAt: Timestamp
+  completedAt: Timestamp | null
+  /** completedAt − requestedAt, in seconds; null until completed. */
+  durationSeconds: number | null
+  /** Meal being served when requested, or null outside buffet hours. */
+  meal: BuffetMeal | null
+  /** Restaurant-local (America/Chicago) hour 0–23 when requested. */
+  hour: number
+  requestedBy: string | null
+  completedBy: string | null
 }
 
 /** Legacy price/hour fields are no longer read — prices and hours come from constants/buffetSchedule.ts. */

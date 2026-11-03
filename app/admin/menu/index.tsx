@@ -201,7 +201,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontFamily: fonts.sansBold,
-    color: colors.white,
+    color: '#000000',
     fontSize: 15,
   },
   sectionCount: {

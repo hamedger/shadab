@@ -3,7 +3,10 @@ import { withMenuImages } from '../lib/menuImages'
 import { STATIC_LOCATION_IDS } from './staticLocations'
 
 type StaticItem = Omit<MenuItem, 'createdAt' | 'updatedAt'>
-type MenuItemInput = Omit<StaticItem, 'imageURL' | 'rating' | 'reviewCount' | 'isHalal' | 'isAvailable' | 'locationIds'>
+type MenuItemInput = Omit<StaticItem, 'imageURL' | 'rating' | 'reviewCount' | 'isHalal' | 'isAvailable' | 'locationIds'> & {
+  /** Defaults to true; false hides the item from online ordering (e.g. buffet-only dishes). */
+  isAvailable?: boolean
+}
 
 const LOC = STATIC_LOCATION_IDS
 
@@ -156,6 +159,16 @@ const RAW_MENU: StaticItem[] = [
   item({ id:'malai-chicken', name:'Malai Chicken', description:'Malai chicken is a hugely popular dish with cream, cheese-rich, nutty and creamy saffron and spices.', price:1599, category:'chef-specials', subcategory:'non-veg', isVegetarian:false, isSpicy:false, spiceLevel:1, allergens:['dairy'], tags:['bestseller'], isBuffetItem:true }),
   item({ id:'malai-mutton', name:'Malai Mutton', description:'Malai mutton is a hugely popular dish with cream, cheese-rich, nutty and creamy saffron and spices.', price:1799, category:'chef-specials', subcategory:'non-veg', isVegetarian:false, isSpicy:false, spiceLevel:1, allergens:['dairy'], tags:[], isBuffetItem:true }),
   item({ id:'haryali-chicken', name:'Haryali Chicken', description:'Green chicken curry is a popular dish from the region of Hyderabad. This dish is made up of green chilies, green herbs and spices.', price:1599, category:'chef-specials', subcategory:'non-veg', isVegetarian:false, isSpicy:true, spiceLevel:2, allergens:[], tags:[], isBuffetItem:true }),
+  // Buffet-only specials — isAvailable:false keeps them off the online ordering menu; staff
+  // put them on the line from Admin → Buffet. Prices are placeholders (not sold à la carte).
+  item({ id:'fish-fry', name:'Fish Fry', description:'Spiced, pan-fried fish fillets with curry leaves.', price:1699, category:'non-veg-appetizers', subcategory:'non-veg', isVegetarian:false, isSpicy:true, spiceLevel:2, allergens:['fish'], tags:[], isBuffetItem:true, isAvailable:false }),
+  item({ id:'chicken-alfredo-pasta', name:'Chicken Alfredo Pasta', description:'Pasta and grilled chicken in a creamy alfredo sauce.', price:1499, category:'chef-specials', subcategory:'non-veg', isVegetarian:false, isSpicy:false, spiceLevel:1, allergens:['gluten','dairy'], tags:[], isBuffetItem:true, isAvailable:false }),
+  item({ id:'chicken-puff', name:'Chicken Puff', description:'Flaky puff pastry filled with spiced chicken.', price:499, category:'non-veg-appetizers', subcategory:'non-veg', isVegetarian:false, isSpicy:false, spiceLevel:1, allergens:['gluten','dairy'], tags:[], isBuffetItem:true, isAvailable:false }),
+  item({ id:'chicken-cheese-rolls', name:'Chicken Cheese Rolls', description:'Crispy rolls stuffed with spiced chicken and melted cheese.', price:999, category:'non-veg-appetizers', subcategory:'non-veg', isVegetarian:false, isSpicy:false, spiceLevel:1, allergens:['gluten','dairy'], tags:[], isBuffetItem:true, isAvailable:false }),
+  item({ id:'chicken-noodles-fry', name:'Chicken Noodles Fry', description:'Indo-Chinese stir-fried noodles with chicken and vegetables.', price:1399, category:'chinese', subcategory:'non-veg', isVegetarian:false, isSpicy:true, spiceLevel:2, allergens:['gluten','soy'], tags:[], isBuffetItem:true, isAvailable:false }),
+  item({ id:'mirchi-fry', name:'Mirchi Fry', description:'Hyderabadi stuffed green chilies, battered and fried.', price:799, category:'veg-appetizers', subcategory:'veg', isVegetarian:true, isSpicy:true, spiceLevel:3, allergens:[], tags:[], isBuffetItem:true, isAvailable:false }),
+  item({ id:'fish-sticks', name:'Fish Sticks', description:'Golden breaded fish sticks.', price:999, category:'non-veg-appetizers', subcategory:'non-veg', isVegetarian:false, isSpicy:false, spiceLevel:1, allergens:['fish','gluten'], tags:[], isBuffetItem:true, isAvailable:false }),
+  item({ id:'potato-tots', name:'Potato Tots', description:'Crispy golden potato tots — a kids favorite.', price:499, category:'veg-appetizers', subcategory:'veg', isVegetarian:true, isSpicy:false, spiceLevel:1, allergens:[], tags:[], isBuffetItem:true, isAvailable:false }),
   item({ id:'mutton-marag', name:'Shahi Mutton Marag', description:"Marag is a soup made with tender mutton attached to bones. It's a spicy, rich and refined mutton stew or soup.", price:1799, category:'chef-specials', subcategory:'non-veg', isVegetarian:false, isSpicy:true, spiceLevel:2, allergens:[], tags:['signature'], isBuffetItem:true }),
   item({ id:'hyderabadi-mutton-masala', name:'Hyderabadi Mutton Masala', description:'Bone-in mutton simmered in a rich, spicy Hyderabadi masala of onions, tomatoes, and roasted spices.', price:1999, category:'chef-specials', subcategory:'non-veg', isVegetarian:false, isSpicy:true, spiceLevel:2, allergens:[], tags:['signature','new'], isBuffetItem:true }),
   item({ id:'mutton-haleem', name:'Mutton Haleem', description:'Haleem is a stew composed of meat, lentils, spices, ghee and pounded wheat made into a thick paste.', price:1999, category:'chef-specials', subcategory:'non-veg', isVegetarian:false, isSpicy:false, spiceLevel:1, allergens:['gluten'], tags:['signature','bestseller'], isBuffetItem:true }),
