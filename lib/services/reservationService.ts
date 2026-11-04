@@ -58,10 +58,11 @@ export function validateReservation(input: ReservationInput): ReservationValidat
   if (!input.phone.trim() || input.phone.replace(/\D/g, '').length < 10) {
     errors.push('Valid cell phone number is required')
   }
+  // Email is optional — the confirmation is texted to the phone number.
   if (input.email?.trim() && !EMAIL_RE.test(input.email.trim())) {
     errors.push('Enter a valid email or leave it blank')
   }
-  if (!input.meal) errors.push('Choose the dinner buffet')
+  if (!input.meal) errors.push('Choose breakfast or dinner')
   else if (!isMealReservable(input.meal)) errors.push(BUFFET_COMING_SOON_MESSAGE)
 
   if (!input.date.trim() || !DATE_RE.test(input.date.trim())) {

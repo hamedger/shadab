@@ -165,7 +165,7 @@ function Stepper({
 
 export default function ReservationScreen() {
   const { width } = useWindowDimensions()
-  const { submit, loading, error, booked, defaultName, defaultPhone } = useReservation()
+  const { submit, loading, error, booked, defaultName, defaultEmail, defaultPhone } = useReservation()
 
   const [name, setName] = useState(defaultName)
   const [phone, setPhone] = useState(defaultPhone)
@@ -176,10 +176,13 @@ export default function ReservationScreen() {
   const [date, setDate] = useState('')
   const [time, setTime] = useState('')
 
+  const [email, setEmail] = useState(defaultEmail)
+
   useEffect(() => {
     if (defaultName && !name) setName(defaultName)
     if (defaultPhone && !phone) setPhone(defaultPhone)
-  }, [defaultName, defaultPhone])
+    if (defaultEmail && !email) setEmail(defaultEmail)
+  }, [defaultName, defaultPhone, defaultEmail])
 
   const hasDate = DATE_RE.test(date)
   const today = getRestaurantNow().dateString
@@ -241,6 +244,7 @@ export default function ReservationScreen() {
       await submit({
         name,
         phone,
+        email: email.trim(),
         meal,
         adults,
         children,
@@ -393,6 +397,15 @@ export default function ReservationScreen() {
           </View>
 
           <Input label="Full Name *" value={name} onChangeText={setName} placeholder="Your name" />
+          <Input
+            label="Email (optional)"
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoComplete="email"
+            autoCapitalize="none"
+            placeholder="For an emailed receipt"
+          />
           <Input
             label="Cell Phone *"
             value={phone}

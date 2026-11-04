@@ -36,14 +36,15 @@ reservationRouter.post('/checkout', requireAuth, async (req: AuthedRequest, res)
       customerEmail: bodyEmail = '',
     } = req.body ?? {}
 
-    const customerEmail = (bodyEmail || req.userEmail)?.trim()
+    // Email is optional: guests get their confirmation by text. Anonymous guests have no token email.
+    const customerEmail = String(bodyEmail || req.userEmail || '').trim()
 
     if (!locationId || typeof locationId !== 'string') {
       res.status(400).json({ error: 'locationId is required' })
       return
     }
-    if (!customerEmail) {
-      res.status(400).json({ error: 'Valid email is required' })
+    if (customerEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail)) {
+      res.status(400).json({ error: 'Enter a valid email or leave it blank' })
       return
     }
 

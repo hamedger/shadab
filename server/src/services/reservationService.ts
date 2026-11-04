@@ -52,7 +52,7 @@ export interface CreatePendingReservationResult {
   feeCents: number
   lineItems: CloverLineItem[]
   customer: {
-    email: string
+    email?: string
     firstName?: string
     lastName?: string
     phoneNumber?: string
@@ -75,7 +75,6 @@ export async function createPendingReservation(
   input: CreatePendingReservationInput,
 ): Promise<CreatePendingReservationResult> {
   if (!input.customerName.trim()) throw new Error('Name is required')
-  if (!input.customerEmail.trim()) throw new Error('Valid email is required')
   const phoneDigits = input.customerPhone.replace(/\D/g, '')
   if (phoneDigits.length < 10) throw new Error('Valid phone number is required')
   if (!DATE_RE.test(input.date)) throw new Error('Date must be YYYY-MM-DD')
@@ -148,7 +147,7 @@ export async function createPendingReservation(
       id: reservationRef.id,
       userId: input.uid,
       name: input.customerName.trim(),
-      email: input.customerEmail.trim().toLowerCase(),
+      email: (input.customerEmail ?? '').trim().toLowerCase(),
       phone: input.customerPhone.trim(),
       partySize,
       meal,
@@ -203,7 +202,7 @@ export async function createPendingReservation(
     feeCents,
     lineItems,
     customer: {
-      email: input.customerEmail.trim(),
+      ...(input.customerEmail?.trim() ? { email: input.customerEmail.trim() } : {}),
       ...(firstName ? { firstName } : {}),
       ...(lastName ? { lastName } : {}),
       phoneNumber: input.customerPhone.trim(),

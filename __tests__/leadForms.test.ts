@@ -40,7 +40,7 @@ describe('reservationService validation', () => {
     expect(result.valid).toBe(true)
   })
 
-  it('does not require an email', () => {
+  it('does not require an email (confirmation is texted)', () => {
     expect(validateReservation({ ...validInput, email: '' }).valid).toBe(true)
     expect(validateReservation({ ...validInput, email: undefined }).valid).toBe(true)
   })

@@ -11,7 +11,7 @@ export interface CloverLineItem {
 export interface CreateCheckoutSessionInput {
   clover: CloverLocationConfig
   customer: {
-    email: string
+    email?: string
     firstName?: string
     lastName?: string
     phoneNumber?: string
@@ -37,7 +37,8 @@ export async function createCheckoutSession(
 
   const body: Record<string, unknown> = {
     customer: {
-      email: input.customer.email,
+      // Optional for reservations (confirmation goes by text); Clover only needs a name or email.
+      ...(input.customer.email ? { email: input.customer.email } : {}),
       firstName: input.customer.firstName ?? 'Guest',
       lastName: input.customer.lastName ?? 'Customer',
       ...(input.customer.phoneNumber ? { phoneNumber: input.customer.phoneNumber } : {}),
