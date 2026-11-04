@@ -31,15 +31,14 @@ export interface BuffetMealConfig {
 /** Fri, Sat, Sun (0=Sun … 6=Sat) — days a meal with `weekend` prices uses them. */
 export const WEEKEND_BUFFET_DAYS = [5, 6, 0]
 
-export const BUFFET_COMING_SOON_MESSAGE = 'Breakfast and lunch buffets coming soon — reserve dinner'
+export const BUFFET_COMING_SOON_MESSAGE = 'Lunch buffet coming soon — reserve breakfast or dinner'
 
-/** Dinner every day, Sunday included; breakfast and lunch buffets are coming soon. */
+/** Breakfast 7 AM–1 PM and dinner 6:30 PM–1 AM every day, Sunday included; lunch buffet coming soon. */
 export const BUFFET_MEALS: Record<BuffetMeal, BuffetMealConfig> = {
   breakfast: {
     label: 'Breakfast',
     start: '07:00',
-    end: '12:30',
-    comingSoon: true,
+    end: '13:00',
     regularPriceCents: 999,
     grandOpeningPriceCents: 999,
   },
@@ -61,7 +60,18 @@ export const BUFFET_MEALS: Record<BuffetMeal, BuffetMealConfig> = {
   },
 }
 
-/** Meals guests can book online (not the coming-soon breakfast and lunch). */
+/**
+ * Whether a meal is switched on in Admin → Buffet (the `mealServing` map on the buffet doc).
+ * Coming-soon meals are always off; a missing switch means on.
+ */
+export function isMealSwitchedOn(
+  mealServing: Partial<Record<BuffetMeal, boolean>> | null | undefined,
+  meal: BuffetMeal,
+): boolean {
+  return !BUFFET_MEALS[meal].comingSoon && mealServing?.[meal] !== false
+}
+
+/** Meals guests can book online (breakfast and dinner; not the coming-soon lunch). */
 export const RESERVABLE_MEALS: BuffetMeal[] = BUFFET_MEAL_ORDER.filter((meal) => !BUFFET_MEALS[meal].comingSoon)
 
 export function isMealReservable(meal: BuffetMeal): boolean {
@@ -82,10 +92,18 @@ export const BREAKFAST_AND_24_HOURS_START_LABEL = 'Wed, Oct 21'
 export const CHILD_FREE_MAX_AGE = 3
 export const CHILD_HALF_PRICE_AGES = { min: 4, max: 10 }
 
-/** Reservations are prepaid in full. Free cancellation until this many hours before seating. */
+/** Online deposit at booking: this share of the buffet price (before tax). The rest — remaining
+ * buffet plus all tax — is paid at the restaurant. */
+export const RESERVATION_DEPOSIT_PERCENT = 20
+
+export function getReservationDepositCents(subtotalCents: number): number {
+  return Math.round((subtotalCents * RESERVATION_DEPOSIT_PERCENT) / 100)
+}
+
+/** Free cancellation (full deposit refund) until this many hours before seating. */
 export const FREE_CANCELLATION_HOURS = 48
-/** Fee kept when cancelling inside the free-cancellation window. */
-export const LATE_CANCELLATION_FEE_PERCENT = 20
+/** Share of the deposit kept when cancelling inside the free-cancellation window (all of it). */
+export const LATE_CANCELLATION_FEE_PERCENT = 100
 
 const RESERVATION_SLOT_INTERVAL_MINUTES = 15
 /** Last seating is this long before a buffet closes. */
@@ -312,7 +330,7 @@ export interface CancellationTerms {
   refundCents: number
 }
 
-/** Free cancellation 48+ hours before seating; otherwise a 20% fee is kept. */
+/** Free cancellation 48+ hours before seating; otherwise the deposit is kept. */
 export function getCancellationTerms(paidCents: number, startMs: number, nowMs: number = Date.now()): CancellationTerms {
   const isLateCancellation = startMs - nowMs < FREE_CANCELLATION_HOURS * 60 * 60 * 1000
   const feeCents = isLateCancellation ? Math.round((paidCents * LATE_CANCELLATION_FEE_PERCENT) / 100) : 0

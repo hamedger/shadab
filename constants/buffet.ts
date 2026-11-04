@@ -27,7 +27,7 @@ export function getMealPriceCents(meal: BuffetMeal, dateString: string = todayDa
   return getBuffetMealPriceCents(dateString, meal)
 }
 
-/** Dinner every day; breakfast and lunch buffets coming soon. */
+/** Breakfast and dinner every day; lunch buffet coming soon. */
 export const BUFFET_HOURS = {
   breakfast: { start: BUFFET_MEALS.breakfast.start, end: BUFFET_MEALS.breakfast.end },
   lunch: { start: BUFFET_MEALS.lunch.start, end: BUFFET_MEALS.lunch.end },

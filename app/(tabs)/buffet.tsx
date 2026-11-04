@@ -7,6 +7,7 @@ import { formatLocationShort } from '../../lib/locationUtils'
 import { HalalBadge } from '../../components/brand/HalalBadge'
 import { PageIntro } from '../../components/layout/PageIntro'
 import { BuffetMenuBySection } from '../../components/buffet/BuffetMenuBySection'
+import { parseBuffetMenuText } from '../../lib/buffetMenuText'
 import { GrandOpeningBanner } from '../../components/shared/GrandOpeningBanner'
 import { groupBuffetDishesForCustomer } from '../../lib/buffetLayout'
 import { BuffetPriceCards } from '../../components/buffet/BuffetPriceCards'
@@ -15,7 +16,6 @@ import { LARGE_PARTY_GRATUITY_TEXT } from '../../constants/reservation'
 import {
   BUFFET_MEALS,
   isGrandOpeningWindow,
-  MUTTON_SPECIALTIES,
 } from '../../constants/buffet'
 import { isOpen24HoursOn } from '../../constants/config'
 import { BREAKFAST_AND_24_HOURS_START_LABEL } from '../../constants/buffetSchedule'
@@ -43,6 +43,7 @@ export default function BuffetScreen() {
     countdownMinutes,
     todaysDishes,
     specialNote,
+    mealMenus,
   } = useBuffet(location?.id)
 
   const buffetSections = useMemo(
@@ -70,8 +71,8 @@ export default function BuffetScreen() {
         title="The Buffet"
         subtitle={
           isOpen24HoursOn()
-            ? 'A dinner buffet 6:30 PM–1 AM every day — breakfast and lunch buffets coming soon. Open 24 hours for dine-in. Order online for pickup or delivery.'
-            : `A dinner buffet 6:30 PM–1 AM every day — breakfast and lunch buffets coming soon. 24-hour service starts ${BREAKFAST_AND_24_HOURS_START_LABEL}. Order online for pickup or delivery.`
+            ? 'Breakfast buffet 7 AM–1 PM and dinner buffet 6:30 PM–1 AM every day — lunch buffet coming soon. Open 24 hours for dine-in. Order online for pickup or delivery.'
+            : `Breakfast buffet 7 AM–1 PM and dinner buffet 6:30 PM–1 AM every day — lunch buffet coming soon. 24-hour service starts ${BREAKFAST_AND_24_HOURS_START_LABEL}. Order online for pickup or delivery.`
         }
       />
 
@@ -97,18 +98,29 @@ export default function BuffetScreen() {
         <Text style={styles.noteLine}>{LARGE_PARTY_GRATUITY_TEXT}</Text>
       </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Mutton Specialties</Text>
-        <View style={styles.sectionRule} />
-        <Text style={styles.includedText}>{MUTTON_SPECIALTIES.join(' · ')}</Text>
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Today&apos;s Selection</Text>
-        <View style={styles.sectionRule} />
-        <BuffetMenuBySection sections={buffetSections} />
-        <Text style={styles.rotatesNote}>Menu rotates daily</Text>
-      </View>
+      {mealMenus.length > 0 ? (
+        mealMenus.map((m) => (
+          <View key={m.meal} style={styles.section}>
+            <Text style={styles.sectionTitle}>{m.label} Buffet Menu</Text>
+            <View style={styles.sectionRule} />
+            <View style={styles.menuText}>
+              {parseBuffetMenuText(m.text).map((line, i) => (
+                <Text key={i} style={line.kind === 'heading' ? styles.menuHeading : styles.menuItem}>
+                  {line.text}
+                </Text>
+              ))}
+            </View>
+            <Text style={styles.rotatesNote}>Menu rotates daily</Text>
+          </View>
+        ))
+      ) : (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Today&apos;s Selection</Text>
+          <View style={styles.sectionRule} />
+          <BuffetMenuBySection sections={buffetSections} />
+          <Text style={styles.rotatesNote}>Menu rotates daily</Text>
+        </View>
+      )}
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Included With Buffet</Text>
@@ -204,6 +216,9 @@ const styles = StyleSheet.create({
   section: { paddingHorizontal: spacing.lg, marginBottom: spacing.xl },
   sectionTitle: { fontFamily: fonts.display, color: colors.gold, fontSize: 26, lineHeight: 30 },
   sectionRule: { width: 48, height: 1, backgroundColor: colors.border, marginVertical: spacing.md },
+  menuText: { gap: 6 },
+  menuHeading: { fontFamily: fonts.sansBold, color: colors.gold, fontSize: 15, letterSpacing: 0.4, marginTop: spacing.sm },
+  menuItem: { fontFamily: fonts.sans, color: colors.white, fontSize: 15, lineHeight: 22 },
   rotatesNote: { fontFamily: fonts.sans, color: colors.whiteMuted, fontSize: 12, marginTop: spacing.md, textAlign: 'center' },
   includedText: { fontFamily: fonts.sans, color: colors.white, fontSize: 14, lineHeight: 22 },
   halalRow: { marginTop: spacing.md },

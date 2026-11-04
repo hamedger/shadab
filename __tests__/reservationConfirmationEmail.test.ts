@@ -44,6 +44,16 @@ describe('reservation confirmation email', () => {
     expect(body).toContain('2311 W Devon Ave, Chicago, IL 60659')
   })
 
+  it('shows the deposit, balance due, and deposit cancellation policy for deposit bookings', () => {
+    // 20% of the $37.48 buffet = $7.50 online; balance $41.51 - $7.50 = $34.01 at the restaurant.
+    const body = buildCustomerReservationConfirmationBody({ ...input, feeCents: 750 })
+    expect(body).toContain('Estimated total: $41.51')
+    expect(body).toContain('Deposit paid: $7.50')
+    expect(body).toContain('Balance due at the restaurant: $34.01')
+    expect(body).not.toContain('Total paid')
+    expect(body).toContain('forfeit the deposit')
+  })
+
   it('clarifies after-midnight dinner seatings', () => {
     const body = buildCustomerReservationConfirmationBody({ ...input, time: '12:30 AM' })
     expect(body).toContain('12:30 AM (after midnight, the night of the date above)')

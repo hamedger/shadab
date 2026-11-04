@@ -35,6 +35,8 @@ export function BuffetPriceCards({ meals, currentMeal }: BuffetPriceCardsProps) 
             </View>
             {m.comingSoon ? (
               <Text style={styles.startsTag}>Coming soon</Text>
+            ) : m.notServing ? (
+              <Text style={styles.startsTag}>Not serving today</Text>
             ) : (
               <>
                 <Text style={styles.everyDay}>{m.daysLabel}</Text>

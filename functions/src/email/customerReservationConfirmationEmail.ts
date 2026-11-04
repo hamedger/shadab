@@ -98,16 +98,32 @@ export function buildCustomerReservationConfirmationBody(input: CustomerReservat
   if (input.specialRequests?.trim()) lines.push(`Special requests: ${input.specialRequests.trim()}`)
 
   lines.push('')
+  const estimatedTotal =
+    input.subtotalCents != null && input.taxCents != null ? input.subtotalCents + input.taxCents : null
   if (input.subtotalCents != null && input.taxCents != null) {
     lines.push(`Buffet: ${formatCents(input.subtotalCents)}`, `Tax: ${formatCents(input.taxCents)}`)
   }
-  lines.push(`Total paid: ${formatCents(input.feeCents)}`)
+  // Deposit bookings pay part online; older bookings were prepaid in full.
+  const isDeposit = estimatedTotal != null && input.feeCents < estimatedTotal
+  if (isDeposit) {
+    lines.push(
+      `Estimated total: ${formatCents(estimatedTotal)}`,
+      `Deposit paid: ${formatCents(input.feeCents)}`,
+      `Balance due at the restaurant: ${formatCents(estimatedTotal - input.feeCents)}`,
+    )
+  } else {
+    lines.push(`Total paid: ${formatCents(input.feeCents)}`)
+  }
 
   lines.push(
     '',
     'Cancellation policy',
-    '- Free cancellation up to 48 hours before your reservation.',
-    '- Cancellations within 48 hours are charged a 20% fee; the rest is refunded.',
+    isDeposit
+      ? '- Your deposit is fully refunded if you cancel 48 hours or more before your reservation.'
+      : '- Free cancellation up to 48 hours before your reservation.',
+    isDeposit
+      ? '- Cancellations within 48 hours, and no-shows, forfeit the deposit.'
+      : '- Cancellations within 48 hours are charged a 20% fee; the rest is refunded.',
     `- To cancel, please call us at ${RESTAURANT_PHONE_DISPLAY}.`,
     '',
     RESTAURANT_NAME,

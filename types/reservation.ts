@@ -32,6 +32,10 @@ export interface Reservation {
   feeCents?: number
   /** Buffet + tax quoted at booking for pay-at-restaurant reservations. */
   estimatedTotalCents?: number
+  /** Deposit bookings: share of the buffet price charged online (feeCents is the amount). */
+  depositPercent?: number
+  /** Deposit bookings: rest of the buffet plus all tax, collected at the restaurant. */
+  balanceDueCents?: number
   /** Seating time as epoch ms (server-computed, America/Chicago). */
   startsAtMs?: number
   /** `reservationCapacity` doc counting this party against its 90-minute block's 100-guest cap. */

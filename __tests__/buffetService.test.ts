@@ -7,6 +7,8 @@ import {
 } from '../lib/services/buffetService'
 import {
   getCancellationTerms,
+  getReservationDepositCents,
+  getReservationTaxCents,
   getReservationBlockFullMessage,
   getReservationBlockId,
   getReservationBlockIndex,
@@ -44,8 +46,10 @@ describe('buffetService', () => {
       expect(findCurrentMeal('2026-10-17', 60)).toBeNull()
     })
 
-    it('does not serve breakfast (coming soon)', () => {
-      expect(findCurrentMeal('2026-10-21', 8 * 60)).toBeNull()
+    it('serves breakfast 7 AM until 1 PM', () => {
+      expect(findCurrentMeal('2026-10-21', 8 * 60)).toEqual({ meal: 'breakfast', serviceDate: '2026-10-21' })
+      expect(findCurrentMeal('2026-10-21', 12 * 60 + 59)).toEqual({ meal: 'breakfast', serviceDate: '2026-10-21' })
+      expect(findCurrentMeal('2026-10-21', 13 * 60)).toBeNull()
     })
   })
 
@@ -54,7 +58,7 @@ describe('buffetService', () => {
       const status = computeBuffetStatus({ config: null, now: chicago('2026-10-05T12:00:00') })
       expect(status.isOpen).toBe(false)
       expect(status.nextSessionLabel).toMatch(/Grand opening.*Dinner at 6:30 PM/)
-      expect(status.meals.map((m) => m.comingSoon)).toEqual([true, true, false])
+      expect(status.meals.map((m) => m.comingSoon)).toEqual([false, true, false])
     })
 
     it('does not serve breakfast on opening day', () => {
@@ -62,10 +66,10 @@ describe('buffetService', () => {
       expect(findCurrentMeal('2026-10-16', 19 * 60)).toEqual({ meal: 'dinner', serviceDate: '2026-10-16' })
     })
 
-    it('serves dinner at grand opening prices; breakfast and lunch are coming soon', () => {
+    it('serves breakfast mornings and dinner at grand opening prices; lunch is coming soon', () => {
       expect(computeBuffetStatus({ config: null, now: chicago('2026-10-21T08:00:00') })).toMatchObject({
-        isOpen: false,
-        nextSessionLabel: 'Dinner opens at 6:30 PM',
+        isOpen: true,
+        currentSession: 'breakfast',
       })
       const afternoon = computeBuffetStatus({ config: null, now: chicago('2026-10-18T14:00:00') })
       expect(afternoon).toMatchObject({ isOpen: false, nextSessionLabel: 'Dinner opens at 6:30 PM' })
@@ -161,7 +165,7 @@ describe('buffetService', () => {
       const lunch = getReservationSlots('lunch')
       expect(lunch[0]).toBe('2:00 PM')
       expect(lunch[lunch.length - 1]).toBe('4:30 PM')
-      expect(getReservationSlots('breakfast').slice(-1)[0]).toBe('12:00 PM')
+      expect(getReservationSlots('breakfast').slice(-1)[0]).toBe('12:30 PM')
     })
 
     it('converts seatings to Chicago time across the DST change', () => {
@@ -186,12 +190,20 @@ describe('buffetService', () => {
       })
     })
 
-    it('keeps 20% within 48 hours', () => {
-      expect(getCancellationTerms(5000, start, start - 47 * hour)).toEqual({
+    it('keeps the whole deposit within 48 hours', () => {
+      expect(getCancellationTerms(1000, start, start - 47 * hour)).toEqual({
         isLateCancellation: true,
         feeCents: 1000,
-        refundCents: 4000,
+        refundCents: 0,
       })
+    })
+
+    it('charges a 20% deposit of the buffet price, before tax', () => {
+      // 2 adults at regular dinner = $49.98 → $10.00 deposit; balance = $49.98 + $5.37 tax − $10.00.
+      const subtotal = getReservationSubtotalCents('2026-10-30', 'dinner', { adults: 2, children: 0, infants: 0 })
+      expect(subtotal).toBe(4998)
+      expect(getReservationDepositCents(subtotal)).toBe(1000)
+      expect(subtotal + getReservationTaxCents(subtotal) - getReservationDepositCents(subtotal)).toBe(4535)
     })
   })
 

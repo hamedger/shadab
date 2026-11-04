@@ -84,8 +84,8 @@ export function BuffetHero() {
         </Text>
         <Text style={styles.subtitle}>
           {isOpen24HoursOn()
-            ? 'Authentic dum biryani, haleem, and royal feasts — dinner buffet 6:30 PM–1 AM every day, and open 24 hours on Devon Ave. Breakfast and lunch buffets coming soon.'
-            : `Authentic dum biryani, haleem, and royal feasts — dinner buffet 6:30 PM–1 AM every day on Devon Ave. Breakfast and lunch buffets coming soon. 24-hour service starts ${BREAKFAST_AND_24_HOURS_START_LABEL}.`}
+            ? 'Authentic dum biryani, haleem, and royal feasts — breakfast buffet 7 AM–1 PM and dinner buffet 6:30 PM–1 AM every day, open 24 hours on Devon Ave.'
+            : `Authentic dum biryani, haleem, and royal feasts — breakfast buffet 7 AM–1 PM and dinner buffet 6:30 PM–1 AM every day on Devon Ave. 24-hour service starts ${BREAKFAST_AND_24_HOURS_START_LABEL}.`}
         </Text>
 
         <TouchableOpacity

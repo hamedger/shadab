@@ -82,7 +82,7 @@ export function CloverReturnHandler() {
               if (r.status !== 'pending') {
                 finalMessage =
                   `Payment confirmed! Reservation #${r.reservationId.slice(-6).toUpperCase()} — ${r.date} at ${r.time}. Show your confirmation email at the host stand. ` +
-                  `Need to cancel? Call ${formatPhoneDisplay(RESTAURANT_PHONE)} — free up to 48 hours before, 20% fee within 48 hours.`
+                  `Need to cancel? Call ${formatPhoneDisplay(RESTAURANT_PHONE)} — deposit refunded up to 48 hours before; within 48 hours it's kept.`
                 break
               }
               pendingKind = 'reservation'

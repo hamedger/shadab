@@ -18,6 +18,7 @@ import { colors, spacing, borderRadius, fonts } from '../constants/theme'
 import { useReservation } from '../hooks/useReservation'
 import { useReservationCapacity } from '../hooks/useReservationCapacity'
 import { useFullyReserved } from '../hooks/useFullyReserved'
+import { useBuffet } from '../hooks/useBuffet'
 import { FULLY_RESERVED_MESSAGE, FullyReservedNotice } from '../components/shared/FullyReservedNotice'
 import { MAX_ADVANCE_DAYS } from '../lib/services/reservationService'
 import { formatBuffetTime, getMealStatusesForDate } from '../lib/services/buffetService'
@@ -38,6 +39,8 @@ import {
   PAY_AT_RESTAURANT_POLICY_TEXT,
   RESERVATION_PREPAYMENT_ENABLED,
   RESTAURANT_TAX_RATE,
+  RESERVATION_DEPOSIT_PERCENT,
+  getReservationDepositCents,
 } from '../constants/reservation'
 import { formatReservationNumber } from '../lib/admin/reservationAdmin'
 import type { PayAtRestaurantReservation } from '../lib/services/reservationCheckout'
@@ -48,6 +51,8 @@ import {
   getRestaurantNow,
   OPENING_DAY_FIRST_MEAL,
 } from '../constants/buffetSchedule'
+import { RESTAURANT_PHONE } from '../constants/config'
+import { formatPhoneDisplay } from '../lib/locationUtils'
 
 const HEADER_IMAGE = require('../assets/flyers/reserve-header.jpg')
 const HEADER_ASPECT = 1024 / 618
@@ -164,7 +169,7 @@ export default function ReservationScreen() {
 
   const [name, setName] = useState(defaultName)
   const [phone, setPhone] = useState(defaultPhone)
-  // Pre-select when only one buffet is bookable (dinner, while breakfast and lunch are coming soon).
+  // Pre-select when only one buffet is bookable.
   const [meal, setMeal] = useState<BuffetMeal | ''>(RESERVABLE_MEALS.length === 1 ? RESERVABLE_MEALS[0] : '')
   const [adults, setAdults] = useState(2)
   const [children, setChildren] = useState(0)
@@ -180,6 +185,18 @@ export default function ReservationScreen() {
   const today = getRestaurantNow().dateString
   const priceDate = hasDate ? date : today < GRAND_OPENING_START ? GRAND_OPENING_START : today
   const mealOptions = useMemo(() => getMealStatusesForDate(priceDate), [priceDate])
+  // Meals switched off in Admin → Buffet aren't bookable.
+  const { meals: liveMeals, isLoading: buffetLoading } = useBuffet()
+  const switchedOff = useMemo(
+    () => new Set(liveMeals.filter((m) => m.notServing).map((m) => m.meal)),
+    [liveMeals],
+  )
+  const bookableOptions = mealOptions.filter(
+    (option) => isMealReservable(option.meal) && !switchedOff.has(option.meal),
+  )
+  useEffect(() => {
+    if (meal && switchedOff.has(meal)) setMeal('')
+  }, [meal, switchedOff])
 
   // Hide seatings less than 2 hours away — online bookings need that much notice.
   const slots = useMemo(() => {
@@ -215,6 +232,9 @@ export default function ReservationScreen() {
   const subtotal = meal ? getReservationSubtotalCents(priceDate, meal, guests) : null
   const tax = subtotal != null ? getReservationTaxCents(subtotal) : 0
   const total = subtotal != null ? subtotal + tax : null
+  // Online: 20% deposit of the buffet price; the balance (rest + tax) is paid at the restaurant.
+  const deposit = subtotal != null ? getReservationDepositCents(subtotal) : null
+  const balance = total != null && deposit != null ? total - deposit : null
 
   const handleSubmit = async () => {
     try {
@@ -283,7 +303,7 @@ export default function ReservationScreen() {
 
           <Text style={styles.fieldLabel}>Choose your buffet *</Text>
           <View style={styles.mealGrid}>
-            {mealOptions.filter((option) => isMealReservable(option.meal)).map((option) => {
+            {bookableOptions.map((option) => {
               const selected = meal === option.meal
               const unavailable = hasDate && !isMealServedOn(date, option.meal)
               return (
@@ -309,6 +329,11 @@ export default function ReservationScreen() {
               )
             })}
           </View>
+          {!buffetLoading && bookableOptions.length === 0 ? (
+            <Text style={styles.inlineError}>
+              Online reservations are paused right now — please call {formatPhoneDisplay(RESTAURANT_PHONE)}.
+            </Text>
+          ) : null}
           {mealUnavailable ? (
             <Text style={styles.inlineError}>
               {meal === 'breakfast' && date < BREAKFAST_START_DATE
@@ -355,7 +380,7 @@ export default function ReservationScreen() {
               ) : null}
             </View>
           ) : (
-            <Text style={[styles.helper, { marginBottom: spacing.md }]}>Choose the dinner buffet first. Breakfast and lunch buffets coming soon.</Text>
+            <Text style={[styles.helper, { marginBottom: spacing.md }]}>Choose breakfast (7 AM–1 PM) or dinner (6:30 PM–1 AM) first. Lunch buffet coming soon.</Text>
           )}
           {selectedTimeTooSmall ? (
             <Text style={styles.inlineError}>{getReservationBlockFullMessage(selectedSeatsLeft ?? 0)}.</Text>
@@ -376,10 +401,14 @@ export default function ReservationScreen() {
             autoComplete="tel"
             placeholder="We'll call or text if anything changes"
           />
+          <Text style={styles.smsConsent}>
+            We&apos;ll text your reservation confirmation to this number. Msg &amp; data rates may apply.
+            Reply STOP to opt out.
+          </Text>
 
           <View style={styles.noticeBox}>
             <Text style={styles.noticeTitle}>
-              {RESERVATION_PREPAYMENT_ENABLED ? 'Pay for your buffet now' : 'Estimated buffet total — pay at the restaurant'}
+              {RESERVATION_PREPAYMENT_ENABLED ? `Reserve with a ${RESERVATION_DEPOSIT_PERCENT}% deposit` : 'Estimated buffet total — pay at the restaurant'}
             </Text>
             {meal ? (
               <>
@@ -390,7 +419,17 @@ export default function ReservationScreen() {
                 <Text style={styles.noticeText}>
                   Subtotal {formatCents(subtotal ?? 0)}  ·  Tax ({(RESTAURANT_TAX_RATE * 100).toFixed(2)}%) {formatCents(tax)}
                 </Text>
-                <Text style={styles.noticeTotal}>Total {formatCents(total ?? 0)}</Text>
+                {RESERVATION_PREPAYMENT_ENABLED && deposit != null && balance != null ? (
+                  <>
+                    <Text style={styles.noticeText}>Estimated total {formatCents(total ?? 0)}</Text>
+                    <Text style={styles.noticeTotal}>
+                      Due now ({RESERVATION_DEPOSIT_PERCENT}% deposit) {formatCents(deposit)}
+                    </Text>
+                    <Text style={styles.noticeText}>Balance at the restaurant {formatCents(balance)}</Text>
+                  </>
+                ) : (
+                  <Text style={styles.noticeTotal}>Total {formatCents(total ?? 0)}</Text>
+                )}
                 {partySize >= LARGE_PARTY_GRATUITY_MIN_GUESTS ? (
                   <Text style={styles.noticeText}>+ {LARGE_PARTY_GRATUITY_PERCENT}% gratuity added at the restaurant for your party of {partySize}</Text>
                 ) : null}
@@ -398,7 +437,7 @@ export default function ReservationScreen() {
             ) : (
               <Text style={styles.noticeText}>
                 {RESERVATION_PREPAYMENT_ENABLED
-                  ? 'Your reservation prepays the full buffet price for your party plus tax, paid securely by Clover.'
+                  ? `Reserve with a ${RESERVATION_DEPOSIT_PERCENT}% deposit of the buffet price, paid securely by Clover. The balance plus tax is paid at the restaurant.`
                   : 'Choose a meal to see the estimated buffet price for your party plus tax.'}
               </Text>
             )}
@@ -411,8 +450,8 @@ export default function ReservationScreen() {
           <Button
             label={
               RESERVATION_PREPAYMENT_ENABLED
-                ? total != null
-                  ? `Continue to Payment · ${formatCents(total)}`
+                ? deposit != null
+                  ? `Pay ${formatCents(deposit)} Deposit`
                   : 'Continue to Payment'
                 : 'Reserve Table'
             }
@@ -527,6 +566,7 @@ const styles = StyleSheet.create({
   errorText: { fontFamily: fonts.sans, color: colors.error, fontSize: 13 },
   inlineError: { fontFamily: fonts.sans, color: colors.error, fontSize: 12, marginBottom: spacing.md },
   helper: { fontFamily: fonts.sans, color: colors.whiteMuted, fontSize: 12 },
+  smsConsent: { fontFamily: fonts.sans, color: colors.whiteMuted, fontSize: 12, marginTop: -spacing.sm, marginBottom: spacing.md },
   fieldLabel: {
     fontFamily: fonts.sansMedium,
     color: colors.white,

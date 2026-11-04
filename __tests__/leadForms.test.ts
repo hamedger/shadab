@@ -79,10 +79,9 @@ describe('reservationService validation', () => {
     expect(validateReservation({ ...validInput, date: '2026-10-18', time: '1:00 AM' }).valid).toBe(false)
   })
 
-  it('does not take breakfast reservations (coming soon)', () => {
+  it('takes breakfast reservations', () => {
     const result = validateReservation({ ...validInput, date: '2026-10-21', meal: 'breakfast', time: '8:00 AM' })
-    expect(result.valid).toBe(false)
-    expect(result.errors[0]).toMatch(/Breakfast and lunch buffets coming soon/)
+    expect(result.valid).toBe(true)
   })
 
   it('requires 2 hours notice for same-day seatings', () => {
@@ -99,7 +98,7 @@ describe('reservationService validation', () => {
   it('does not take lunch reservations (coming soon)', () => {
     const result = validateReservation({ ...validInput, date: '2026-10-18', meal: 'lunch', time: '2:00 PM' })
     expect(result.valid).toBe(false)
-    expect(result.errors[0]).toMatch(/Breakfast and lunch buffets coming soon/)
+    expect(result.errors[0]).toMatch(/Lunch buffet coming soon/)
   })
 
   it('rejects dates before opening day', () => {

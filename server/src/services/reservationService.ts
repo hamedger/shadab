@@ -1,17 +1,18 @@
 import { FieldValue } from 'firebase-admin/firestore'
 import { db } from '../lib/firebase'
+import { textReservationConfirmed } from './sms'
 import { CloverLineItem } from './cloverClient'
 import {
   addDaysToDateString,
   BUFFET_MEALS,
   BuffetMeal,
-  getBuffetMealPriceCents,
-  getChildBuffetPriceCents,
   getReservationSlots,
   getReservationStartMs,
   getReservationSubtotalCents,
   getReservationTaxCents,
-  RESTAURANT_TAX_RATE,
+  getReservationDepositCents,
+  isMealSwitchedOn,
+  RESERVATION_DEPOSIT_PERCENT,
   getRestaurantNow,
   GRAND_OPENING_START,
   isMealServedOn,
@@ -111,12 +112,13 @@ export async function createPendingReservation(
     throw new Error(`Reservations need at least ${RESERVATION_MIN_NOTICE_LABEL}' notice — pick a later time or date`)
   }
 
-  // Reservations prepay 100% of the buffet plus tax: adults full price, kids 4–10 half, under 4 free.
-  const adultCents = getBuffetMealPriceCents(input.date, meal)
-  const childCents = getChildBuffetPriceCents(adultCents)
+  // Online: a 20% deposit of the buffet price (adults full, kids 4–10 half, under 4 free), before
+  // tax. The balance — the rest of the buffet plus all tax — is paid at the restaurant.
   const subtotalCents = getReservationSubtotalCents(input.date, meal, guests)
   const taxCents = getReservationTaxCents(subtotalCents)
-  const feeCents = subtotalCents + taxCents
+  const estimatedTotalCents = subtotalCents + taxCents
+  const feeCents = getReservationDepositCents(subtotalCents)
+  const balanceDueCents = estimatedTotalCents - feeCents
   const mealLabel = BUFFET_MEALS[meal].label
 
   const capacityBlockId = getReservationBlockId(input.date, meal, input.time.trim())
@@ -129,6 +131,10 @@ export async function createPendingReservation(
   // so a block never passes 100 guests even when payments land at the same time.
   await db.runTransaction(async (tx) => {
     const settings = await tx.get(db.collection('settings').doc('reservations'))
+    const buffet = await tx.get(db.collection('buffet').doc(input.locationId))
+    if (!isMealSwitchedOn(buffet.data()?.mealServing, meal)) {
+      throw new Error(`${BUFFET_MEALS[meal].label} buffet isn't taking reservations right now — please pick another meal`)
+    }
     if (settings.data()?.fullyReservedDate === input.date) {
       throw new Error('We are fully reserved for this date — please pick another date')
     }
@@ -159,7 +165,11 @@ export async function createPendingReservation(
       status: 'pending',
       subtotalCents,
       taxCents,
+      estimatedTotalCents,
+      /** Amount charged online (the deposit). */
       feeCents,
+      depositPercent: RESERVATION_DEPOSIT_PERCENT,
+      balanceDueCents,
       cloverMerchantId: input.cloverMerchantId ?? '',
       cloverCheckoutSessionId: '',
       cloverPaymentId: '',
@@ -169,15 +179,19 @@ export async function createPendingReservation(
   })
 
   const note = `${mealLabel} buffet · ${input.date} at ${input.time.trim()}`
+  const party = [
+    `${guests.adults} adult${guests.adults === 1 ? '' : 's'}`,
+    guests.children > 0 ? `${guests.children} child${guests.children === 1 ? '' : 'ren'} (4–10)` : '',
+    guests.infants > 0 ? `${guests.infants} under 4 (free)` : '',
+  ]
+    .filter(Boolean)
+    .join(', ')
   const lineItems: CloverLineItem[] = [
-    { name: `${mealLabel} Buffet — Adult`, price: adultCents, unitQty: guests.adults, note },
-    ...(guests.children > 0
-      ? [{ name: `${mealLabel} Buffet — Child (4–10)`, price: childCents, unitQty: guests.children, note }]
-      : []),
     {
-      name: `Sales tax (${(RESTAURANT_TAX_RATE * 100).toFixed(2)}%)`,
-      price: taxCents,
+      name: `${mealLabel} Buffet — ${RESERVATION_DEPOSIT_PERCENT}% deposit`,
+      price: feeCents,
       unitQty: 1,
+      note: `${note} · ${party} · balance $${(balanceDueCents / 100).toFixed(2)} at the restaurant`,
     },
   ]
 
@@ -237,6 +251,7 @@ export async function markReservationPaidByCheckoutSession(
     // free, otherwise keep it cancelled and flag it so staff refund it in Clover.
     if (data.cancelReason === 'checkout_abandoned') {
       await reinstateLatePaidReservation(doc.ref, paymentId || checkoutSessionId)
+      await textReservationConfirmed(doc.id)
       return doc.id
     }
     return null
@@ -248,6 +263,7 @@ export async function markReservationPaidByCheckoutSession(
     cloverPaymentId: paymentId || checkoutSessionId,
     updatedAt: FieldValue.serverTimestamp(),
   })
+  await textReservationConfirmed(doc.id)
 
   return doc.id
 }

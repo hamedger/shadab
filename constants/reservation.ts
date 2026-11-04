@@ -16,6 +16,8 @@ export {
   LATE_CANCELLATION_FEE_PERCENT,
   RESERVATION_MIN_NOTICE_LABEL,
   RESTAURANT_TAX_RATE,
+  RESERVATION_DEPOSIT_PERCENT,
+  getReservationDepositCents,
 } from './buffetSchedule'
 import { RESTAURANT_PHONE } from './config'
 import { formatPhoneDisplay } from '../lib/locationUtils'
@@ -40,4 +42,4 @@ export const LARGE_PARTY_GRATUITY_PERCENT = 15
 export const LARGE_PARTY_GRATUITY_TEXT = `A ${LARGE_PARTY_GRATUITY_PERCENT}% gratuity is added for parties of ${LARGE_PARTY_GRATUITY_MIN_GUESTS} or more guests.`
 
 /** Plain-language cancellation policy shown before payment and in admin. */
-export const CANCELLATION_POLICY_TEXT = `Free cancellation up to 48 hours before your reservation. Cancellations within 48 hours are charged a 20% fee; the rest is refunded. To cancel, call us at ${formatPhoneDisplay(RESTAURANT_PHONE)}.`
+export const CANCELLATION_POLICY_TEXT = `Your deposit is fully refunded if you cancel 48 hours or more before your reservation. Cancellations within 48 hours, and no-shows, forfeit the deposit. To cancel, call us at ${formatPhoneDisplay(RESTAURANT_PHONE)}.`

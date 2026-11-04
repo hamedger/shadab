@@ -98,6 +98,7 @@ reservationRouter.post('/checkout', requireAuth, async (req: AuthedRequest, res)
       message.includes('Meal') ||
       message.includes('Time') ||
       message.includes('Fully booked') ||
+      message.includes('reservations right now') ||
       message.includes('advance')
         ? 400
         : 500

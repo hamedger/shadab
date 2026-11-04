@@ -14,10 +14,18 @@ export interface BuffetDish {
   needsRefill?: boolean
   /** Display section on the buffet board. */
   buffetCategory?: BuffetSectionId
+  /** Meal whose pasted menu this dish came from (Admin → Buffet). Legacy dishes have none. */
+  meal?: BuffetMeal
   /** Epoch ms when the current refill was requested (set while needsRefill is true). */
   refillRequestedAt?: number | null
   /** `buffetRefills` doc id for the open refill (set while needsRefill is true). */
   refillEventId?: string | null
+}
+
+export interface BuffetMealMenu {
+  text: string
+  updatedAt?: Timestamp | null
+  updatedBy?: string | null
 }
 
 export type BuffetRefillStatus = 'open' | 'completed' | 'cancelled'
@@ -57,6 +65,10 @@ export interface BuffetConfig {
   isLunchActive: boolean
   isDinnerActive: boolean
   specialNote: string
+  /** Per-meal menus pasted in Admin → Buffet and uploaded; shown on the website as-is. */
+  mealMenus?: Partial<Record<BuffetMeal, BuffetMealMenu>>
+  /** Per-meal Serving switch. Off = not bookable, menu hidden, not shown as open. Missing = on. */
+  mealServing?: Partial<Record<BuffetMeal, boolean>>
   updatedAt: Timestamp
 }
 
@@ -77,6 +89,8 @@ export interface BuffetMealStatus {
   otherDaysPriceLabel: string | null
   /** True during grand opening week when the special beats the regular price. */
   isSpecial: boolean
+  /** Switched off in Admin → Buffet: not bookable and not served today. */
+  notServing: boolean
 }
 
 export interface BuffetStatus {
@@ -89,5 +103,7 @@ export interface BuffetStatus {
   countdownMinutes: number | null
   todaysDishes: BuffetDish[]
   specialNote: string
+  /** Uploaded menus of meals that are serving, in service order; empty → show todaysDishes. */
+  mealMenus: { meal: BuffetMeal; label: string; text: string }[]
   isLoading: boolean
 }

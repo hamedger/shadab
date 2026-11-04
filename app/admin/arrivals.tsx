@@ -84,6 +84,8 @@ function ArrivalCard({ reservation }: { reservation: Reservation }) {
       label: `PAY AT TABLE${reservation.estimatedTotalCents != null ? ` ~${formatCents(reservation.estimatedTotalCents)}` : ''}`,
       color: colors.gold,
     }
+  } else if (paid && reservation.balanceDueCents) {
+    badge = { label: `DEPOSIT PAID · COLLECT ${formatCents(reservation.balanceDueCents)}`, color: colors.gold }
   } else if (paid) badge = { label: `PAID ${formatCents(reservation.feeCents ?? 0)}`, color: colors.gold }
   else badge = { label: 'NOT PAID', color: colors.error }
 

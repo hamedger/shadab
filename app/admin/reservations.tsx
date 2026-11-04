@@ -143,7 +143,9 @@ function ReservationCard({
         </Text>
       ) : reservation.feeCents != null ? (
         <Text style={styles.noteLine}>
-          Prepaid {formatCents(reservation.feeCents)}
+          {reservation.balanceDueCents
+            ? `Deposit paid ${formatCents(reservation.feeCents)} · Balance due ${formatCents(reservation.balanceDueCents)}`
+            : `Prepaid ${formatCents(reservation.feeCents)}`}
           {reservation.status === 'cancelled' && reservation.refundCents != null
             ? ` · Refund ${formatCents(reservation.refundCents)}${
                 reservation.cancellationFeeCents
@@ -199,7 +201,9 @@ function ReservationCard({
                 {isPayAtRestaurant(reservation)
                   ? 'Nothing was prepaid — no refund needed.'
                   : cancelPreview.isLateCancellation
-                  ? `Within 48 hours: keep ${formatCents(cancelPreview.feeCents)} (20%), refund ${formatCents(cancelPreview.refundCents)}.`
+                  ? cancelPreview.refundCents > 0
+                    ? `Within 48 hours: keep ${formatCents(cancelPreview.feeCents)}, refund ${formatCents(cancelPreview.refundCents)}.`
+                    : `Within 48 hours: the ${formatCents(cancelPreview.feeCents)} deposit is kept — no refund.`
                   : `More than 48 hours out: full refund of ${formatCents(cancelPreview.refundCents)}.`}
               </Text>
               <Button label="Confirm cancel" size="sm" onPress={cancel} loading={updating} />

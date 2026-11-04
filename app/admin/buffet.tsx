@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import {
   View,
   Text,
@@ -8,33 +8,48 @@ import {
   ActivityIndicator,
   TextInput,
   TouchableOpacity,
+  Switch,
 } from 'react-native'
-import { doc, onSnapshot, updateDoc, serverTimestamp, writeBatch } from 'firebase/firestore'
+import { doc, getDoc, onSnapshot, serverTimestamp, setDoc, writeBatch } from 'firebase/firestore'
+import { auth, db } from '../../lib/firebase'
 import { logRefillClosed, logRefillRequested } from '../../lib/admin/refillLog'
-import { db } from '../../lib/firebase'
-import { BuffetConfig } from '../../types/buffet'
-import { MenuItem } from '../../types/menu'
+import { BuffetConfig, BuffetDish } from '../../types/buffet'
 import { Input } from '../../components/ui/Input'
 import { Button } from '../../components/ui/Button'
-import { AdminBuffetItemRow } from '../../components/admin/AdminBuffetItemRow'
 import { AdminLocationFilter } from '../../components/admin/AdminLocationFilter'
 import { colors, spacing, borderRadius, fonts } from '../../constants/theme'
 import { DEFAULT_LOCATION_ID } from '../../constants/config'
-import { useAdminMenu } from '../../hooks/useAdminMenu'
+import { formatMealHours, isBuffetDishNeedsRefill } from '../../lib/services/buffetService'
 import {
-  formatMealHours,
-  isBuffetDishNeedsRefill,
-  isBuffetDishServing,
-} from '../../lib/services/buffetService'
-import { BUFFET_MEAL_ORDER, BUFFET_MEALS } from '../../constants/buffet'
-import {
-  AdminBuffetStatusFilter,
-  buildAdminBuffetSections,
-  buffetDishFromMenuItem,
-  countAdminBuffetRefillStatus,
-} from '../../lib/buffetLayout'
-import { ensureBuffetConfig, resolveBuffetDocId } from '../../lib/admin/buffetAdmin'
+  BUFFET_MEAL_ORDER,
+  BUFFET_MEALS,
+  BuffetMeal,
+  RESTAURANT_TIMEZONE,
+  isMealSwitchedOn,
+} from '../../constants/buffet'
+import { buffetMenuDishes, syncRefillLineWithMenu } from '../../lib/buffetMenuText'
+import { resolveBuffetDocId } from '../../lib/admin/buffetAdmin'
 import { useAdminLocationStore } from '../../store/adminLocationStore'
+
+type RefillFilter = 'all' | 'red' | 'green'
+type PerMeal<T> = Record<BuffetMeal, T>
+
+const perMeal = <T,>(value: T): PerMeal<T> => ({ breakfast: value, lunch: value, dinner: value })
+
+const updatedFormatter = new Intl.DateTimeFormat('en-US', {
+  timeZone: RESTAURANT_TIMEZONE,
+  weekday: 'short',
+  month: 'short',
+  day: 'numeric',
+  hour: 'numeric',
+  minute: '2-digit',
+})
+
+const MENU_PLACEHOLDER: PerMeal<string> = {
+  breakfast: 'BREAKFAST:\nHalwa Puri\nChana Masala\nOmelette\n\nDRINKS:\nChai',
+  lunch: 'Lunch buffet menu…',
+  dinner: 'CHICKEN:\nChicken 65\nAchari Chicken\n\nDESSERTS:\nMango Malai',
+}
 
 export default function AdminBuffetScreen() {
   const [config, setConfig] = useState<BuffetConfig | null>(null)
@@ -42,17 +57,19 @@ export default function AdminBuffetScreen() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [specialNote, setSpecialNote] = useState('')
+  const [drafts, setDrafts] = useState<PerMeal<string>>(perMeal(''))
+  const [dirty, setDirty] = useState<PerMeal<boolean>>(perMeal(false))
+  const dirtyRef = useRef<PerMeal<boolean>>(perMeal(false))
+  const [uploading, setUploading] = useState<BuffetMeal | null>(null)
+  const [servingBusy, setServingBusy] = useState<BuffetMeal | null>(null)
   const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState<AdminBuffetStatusFilter>('all')
-  const [servingBusyId, setServingBusyId] = useState<string | null>(null)
+  const [statusFilter, setStatusFilter] = useState<RefillFilter>('all')
   const [refillBusyId, setRefillBusyId] = useState<string | null>(null)
 
   const hydrate = useAdminLocationStore((s) => s.hydrate)
   const filterLocationId = useAdminLocationStore((s) => s.filterLocationId)
   const setFilterLocationId = useAdminLocationStore((s) => s.setFilterLocationId)
   const locationId = filterLocationId ?? DEFAULT_LOCATION_ID
-
-  const { data: menuItems = [] } = useAdminMenu(locationId)
 
   useEffect(() => {
     hydrate()
@@ -69,18 +86,23 @@ export default function AdminBuffetScreen() {
     let unsub: (() => void) | undefined
 
     setLoading(true)
+    dirtyRef.current = perMeal(false)
+    setDirty(perMeal(false))
     void resolveBuffetDocId(locationId).then((docId) => {
       if (cancelled) return
       setBuffetDocId(docId)
       unsub = onSnapshot(doc(db, 'buffet', docId), (snap) => {
-        if (snap.exists()) {
-          const data = snap.data() as BuffetConfig
-          setConfig(data)
-          setSpecialNote(data.specialNote ?? '')
-        } else {
-          setConfig(null)
-          setSpecialNote('')
-        }
+        const data = snap.exists() ? (snap.data() as BuffetConfig) : null
+        setConfig(data)
+        setSpecialNote(data?.specialNote ?? '')
+        // Don't overwrite a box the admin is typing in when the doc changes (e.g. a refill tap).
+        setDrafts((prev) => {
+          const next = { ...prev }
+          for (const meal of BUFFET_MEAL_ORDER) {
+            if (!dirtyRef.current[meal]) next[meal] = data?.mealMenus?.[meal]?.text ?? ''
+          }
+          return next
+        })
         setLoading(false)
       })
     })
@@ -93,56 +115,99 @@ export default function AdminBuffetScreen() {
 
   const buffetRef = useMemo(() => doc(db, 'buffet', buffetDocId), [buffetDocId])
 
-  const getConfig = useCallback(async (): Promise<BuffetConfig> => {
-    return ensureBuffetConfig(buffetDocId, locationId, menuItems, config)
-  }, [buffetDocId, locationId, menuItems, config])
+  const line = config?.todaysDishes ?? []
+  const refillCount = line.filter(isBuffetDishNeedsRefill).length
+  const counts = { all: line.length, red: refillCount, green: line.length - refillCount }
+  const query = search.trim().toLowerCase()
+  const rows = line
+    .filter((d) => (statusFilter === 'all' ? true : statusFilter === 'red' ? isBuffetDishNeedsRefill(d) : !isBuffetDishNeedsRefill(d)))
+    .filter((d) => !query || d.name.toLowerCase().includes(query))
+  const groups = [
+    ...BUFFET_MEAL_ORDER.map((meal) => ({
+      key: meal,
+      title: `${BUFFET_MEALS[meal].label} Buffet`,
+      dishes: rows.filter((d) => d.meal === meal),
+    })),
+    { key: 'other', title: 'Other (before per-meal menus)', dishes: rows.filter((d) => !d.meal) },
+  ].filter((g) => g.dishes.length > 0)
 
-  const { sections, extraRows, statusCounts } = useMemo(() => {
-    const filtered = buildAdminBuffetSections(
-      menuItems,
-      config?.todaysDishes ?? [],
-      search,
-      statusFilter,
-    )
-    const all = buildAdminBuffetSections(menuItems, config?.todaysDishes ?? [])
-    const allRows = [...all.sections.flatMap((s) => s.rows), ...all.extraRows]
-    return {
-      ...filtered,
-      statusCounts: countAdminBuffetRefillStatus(allRows),
+  const onChangeMenu = (meal: BuffetMeal, text: string) => {
+    setDrafts((prev) => ({ ...prev, [meal]: text }))
+    const isDirty = text !== (config?.mealMenus?.[meal]?.text ?? '')
+    dirtyRef.current = { ...dirtyRef.current, [meal]: isDirty }
+    setDirty((prev) => ({ ...prev, [meal]: isDirty }))
+  }
+
+  const uploadMenu = async (meal: BuffetMeal) => {
+    const text = drafts[meal].trim()
+    if (!text) {
+      Alert.alert('Menu is empty', `Paste the ${BUFFET_MEALS[meal].label.toLowerCase()} buffet menu first.`)
+      return
     }
-  }, [menuItems, config?.todaysDishes, search, statusFilter])
-
-  if (loading) {
-    return <ActivityIndicator color={colors.gold} style={{ flex: 1, marginTop: 80 }} />
-  }
-
-  const addDish = async (item: MenuItem, needsRefill: boolean, cfg: BuffetConfig) => {
-    if (cfg.todaysDishes.find((d) => d.menuItemId === item.id)) return
-    const newDish = { ...buffetDishFromMenuItem(item, cfg.todaysDishes.length), needsRefill }
-    await updateDoc(buffetRef, {
-      todaysDishes: [...cfg.todaysDishes, newDish],
-      updatedAt: serverTimestamp(),
-    })
-  }
-
-  const toggleRefill = async (item: MenuItem) => {
-    setRefillBusyId(item.id)
+    setUploading(meal)
     try {
-      const cfg = await getConfig()
-      const existing = cfg.todaysDishes.find((d) => d.menuItemId === item.id)
-      if (!existing) {
-        await addDish(item, false, cfg)
-        return
+      const snap = await getDoc(buffetRef)
+      const current = snap.exists() ? ((snap.data() as BuffetConfig).todaysDishes ?? []) : []
+      const { next, removed } = syncRefillLineWithMenu(current, meal, text)
+      const batch = writeBatch(db)
+      // Dishes dropped from the menu while waiting on a refill close as cancelled (not counted).
+      for (const dish of removed) {
+        if (isBuffetDishNeedsRefill(dish)) logRefillClosed(batch, dish, 'cancelled')
       }
+      batch.set(
+        buffetRef,
+        {
+          locationId,
+          mealMenus: {
+            [meal]: { text, updatedAt: serverTimestamp(), updatedBy: auth.currentUser?.email ?? null },
+          },
+          todaysDishes: next,
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true },
+      )
+      await batch.commit()
+      dirtyRef.current = { ...dirtyRef.current, [meal]: false }
+      setDirty((prev) => ({ ...prev, [meal]: false }))
+      setDrafts((prev) => ({ ...prev, [meal]: text }))
+    } catch (e) {
+      Alert.alert('Upload failed', e instanceof Error ? e.message : 'Could not upload the buffet menu')
+    } finally {
+      setUploading(null)
+    }
+  }
 
-      // Red → green closes the refill record; green → red opens one (feeds Admin → Refills).
+  /** Serving on/off opens or closes online reservations and the website menu for that meal. */
+  const toggleServing = async (meal: BuffetMeal, on: boolean) => {
+    setServingBusy(meal)
+    try {
+      await setDoc(
+        buffetRef,
+        { locationId, mealServing: { [meal]: on }, updatedAt: serverTimestamp() },
+        { merge: true },
+      )
+    } catch (e) {
+      Alert.alert('Update failed', e instanceof Error ? e.message : 'Could not change serving status')
+    } finally {
+      setServingBusy(null)
+    }
+  }
+
+  // Red → green closes the refill record; green → red opens one (feeds Admin → Refills).
+  const toggleRefill = async (dish: BuffetDish) => {
+    setRefillBusyId(dish.menuItemId)
+    try {
+      const snap = await getDoc(buffetRef)
+      const cfg = snap.exists() ? (snap.data() as BuffetConfig) : null
+      const existing = cfg?.todaysDishes?.find((d) => d.menuItemId === dish.menuItemId)
+      if (!cfg || !existing) return
       const batch = writeBatch(db)
       const patch = isBuffetDishNeedsRefill(existing)
         ? logRefillClosed(batch, existing, 'completed')
         : logRefillRequested(batch, locationId, existing)
       batch.update(buffetRef, {
         todaysDishes: cfg.todaysDishes.map((d) =>
-          d.menuItemId === item.id ? { ...d, ...patch } : d,
+          d.menuItemId === dish.menuItemId ? { ...d, ...patch } : d,
         ),
         updatedAt: serverTimestamp(),
       })
@@ -154,71 +219,10 @@ export default function AdminBuffetScreen() {
     }
   }
 
-  const removeFromBuffet = async (item: MenuItem) => {
-    const cfg = await getConfig()
-    const existing = cfg.todaysDishes.find((d) => d.menuItemId === item.id)
-    if (!existing) return
-
-    Alert.alert(
-      'Remove from today\'s line?',
-      `${item.name} will disappear from the buffet board until you add it again.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Remove',
-          style: 'destructive',
-          onPress: () => {
-            void (async () => {
-              setRefillBusyId(item.id)
-              try {
-                const latest = await getConfig()
-                const removed = latest.todaysDishes.find((d) => d.menuItemId === item.id)
-                const batch = writeBatch(db)
-                if (removed && isBuffetDishNeedsRefill(removed)) {
-                  logRefillClosed(batch, removed, 'cancelled')
-                }
-                batch.update(buffetRef, {
-                  todaysDishes: latest.todaysDishes.filter((d) => d.menuItemId !== item.id),
-                  updatedAt: serverTimestamp(),
-                })
-                await batch.commit()
-              } catch (e) {
-                Alert.alert(
-                  'Update failed',
-                  e instanceof Error ? e.message : 'Could not remove item from buffet',
-                )
-              } finally {
-                setRefillBusyId(null)
-              }
-            })()
-          },
-        },
-      ],
-    )
-  }
-
-  const toggleServing = async (menuItemId: string, next: boolean) => {
-    setServingBusyId(menuItemId)
-    try {
-      const cfg = await getConfig()
-      await updateDoc(buffetRef, {
-        todaysDishes: cfg.todaysDishes.map((d) =>
-          d.menuItemId === menuItemId ? { ...d, isServing: next } : d,
-        ),
-        updatedAt: serverTimestamp(),
-      })
-    } catch (e) {
-      Alert.alert('Update failed', e instanceof Error ? e.message : 'Could not update serving status')
-    } finally {
-      setServingBusyId(null)
-    }
-  }
-
   const saveNote = async () => {
     setSaving(true)
     try {
-      await getConfig()
-      await updateDoc(buffetRef, { specialNote, updatedAt: serverTimestamp() })
+      await setDoc(buffetRef, { locationId, specialNote, updatedAt: serverTimestamp() }, { merge: true })
       Alert.alert('Saved', 'Buffet note updated')
     } catch (e) {
       Alert.alert('Save failed', e instanceof Error ? e.message : 'Could not save buffet note')
@@ -227,52 +231,96 @@ export default function AdminBuffetScreen() {
     }
   }
 
-  const onBuffetCount = config?.todaysDishes.length ?? 0
-  const servingCount =
-    config?.todaysDishes.filter((d) => isBuffetDishServing(d)).length ?? 0
-  const refillCount =
-    config?.todaysDishes.filter((d) => isBuffetDishNeedsRefill(d)).length ?? 0
+  if (loading) {
+    return <ActivityIndicator color={colors.gold} style={{ flex: 1, marginTop: 80 }} />
+  }
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <Text style={styles.heading}>Buffet</Text>
 
+      <AdminLocationFilter showAll={false} />
+
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Sessions</Text>
-        <View style={styles.card}>
-          {BUFFET_MEAL_ORDER.map((meal) => (
-            <Text key={meal} style={styles.legendHint}>
-              {BUFFET_MEALS[meal].label}: {BUFFET_MEALS[meal].comingSoon ? 'coming soon' : `${formatMealHours(meal)} · every day`}
-            </Text>
-          ))}
-          <Text style={styles.legendHint}>
-            Open/closed status follows this schedule automatically (America/Chicago).
-          </Text>
-        </View>
+        <Text style={styles.sectionTitle}>Buffet Menus</Text>
+        <Text style={styles.pageHint}>
+          Paste each menu, one dish per line. Lines ending in &quot;:&quot; or in CAPITALS show as headings.
+          Serving on = guests can reserve that buffet online and its menu shows on the website.
+        </Text>
+
+        {BUFFET_MEAL_ORDER.map((meal) => {
+          const comingSoon = Boolean(BUFFET_MEALS[meal].comingSoon)
+          const on = isMealSwitchedOn(config?.mealServing, meal)
+          const saved = config?.mealMenus?.[meal]
+          const updatedAt = saved?.updatedAt?.toDate?.() ?? null
+          const dishCount = buffetMenuDishes(meal, drafts[meal]).length
+          return (
+            <View key={meal} style={[styles.mealCard, !on && styles.mealCardOff]}>
+              <View style={styles.mealHeader}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.mealTitle}>{BUFFET_MEALS[meal].label} Buffet Menu</Text>
+                  <Text style={styles.mealHours}>
+                    {comingSoon ? 'Coming soon — hours and price not set yet' : `${formatMealHours(meal)} · every day`}
+                  </Text>
+                </View>
+                <View style={styles.servingCol}>
+                  <Text style={[styles.servingLabel, !on && styles.servingLabelOff]}>
+                    {comingSoon ? 'Coming soon' : on ? 'Serving · reservations open' : 'Off · reservations closed'}
+                  </Text>
+                  {servingBusy === meal ? (
+                    <ActivityIndicator size="small" color={colors.gold} />
+                  ) : (
+                    <Switch
+                      value={on}
+                      disabled={comingSoon}
+                      onValueChange={(v) => toggleServing(meal, v)}
+                      thumbColor={on ? colors.gold : colors.whiteMuted}
+                      trackColor={{ false: colors.border, true: 'rgba(201, 162, 75, 0.45)' }}
+                      accessibilityLabel={`${BUFFET_MEALS[meal].label} buffet serving`}
+                    />
+                  )}
+                </View>
+              </View>
+              <TextInput
+                style={styles.menuInput}
+                value={drafts[meal]}
+                onChangeText={(t) => onChangeMenu(meal, t)}
+                placeholder={MENU_PLACEHOLDER[meal]}
+                placeholderTextColor={colors.whiteMuted}
+                multiline
+                textAlignVertical="top"
+                accessibilityLabel={`${BUFFET_MEALS[meal].label} buffet menu`}
+              />
+              <View style={styles.uploadRow}>
+                <Button
+                  label="Upload to website"
+                  onPress={() => uploadMenu(meal)}
+                  loading={uploading === meal}
+                  disabled={!drafts[meal].trim() || (uploading !== null && uploading !== meal)}
+                />
+                <Text style={[styles.uploadStatus, dirty[meal] && styles.uploadStatusDirty]}>
+                  {dirty[meal]
+                    ? `Not uploaded yet · ${dishCount} dish${dishCount === 1 ? '' : 'es'}`
+                    : updatedAt
+                      ? `Last updated on the site: ${updatedFormatter.format(updatedAt)}${
+                          saved?.updatedBy ? ` by ${saved.updatedBy}` : ''
+                        }`
+                      : 'Not on the website yet'}
+                </Text>
+              </View>
+            </View>
+          )
+        })}
       </View>
 
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>
-            Buffet stations ({servingCount} serving · {onBuffetCount} on line)
-          </Text>
-          <Text style={styles.legendHint}>
-            Green dot = stocked · Red dot = needs refill · Gray dot = not on today&apos;s line · Tap
-            dot to add or toggle stocked/refill · Hold dot to remove from line · Serving switch =
-            shown on customer buffet page
+          <Text style={styles.sectionTitle}>Refill system ({line.length} dishes)</Text>
+          <Text style={styles.pageHint}>
+            Built from the uploaded menus. Tap a dot when a dish needs a refill (red), tap again when
+            it&apos;s restocked (green).
           </Text>
         </View>
-
-        {!config ? (
-          <View style={styles.setupBanner}>
-            <Text style={styles.setupBannerText}>
-              No buffet line saved for this location yet. Tap any item&apos;s dot to set up
-              today&apos;s line — all standard buffet items will be added automatically.
-            </Text>
-          </View>
-        ) : null}
-
-        <AdminLocationFilter showAll={false} />
 
         {refillCount > 0 ? (
           <TouchableOpacity
@@ -289,27 +337,27 @@ export default function AdminBuffetScreen() {
         <View style={styles.filterRow}>
           {(
             [
-              { key: 'all', label: 'All on line' },
+              { key: 'all', label: 'All' },
               { key: 'red', label: 'Needs refill', dot: colors.error },
               { key: 'green', label: 'Stocked', dot: colors.green },
             ] as const
-          ).map(({ key, label, dot }) => {
-            const active = statusFilter === key
+          ).map((f) => {
+            const active = statusFilter === f.key
             return (
               <TouchableOpacity
-                key={key}
+                key={f.key}
                 style={[styles.filterChip, active && styles.filterChipActive]}
-                onPress={() => setStatusFilter(key)}
+                onPress={() => setStatusFilter(f.key)}
                 accessibilityRole="button"
                 accessibilityState={{ selected: active }}
               >
-                {dot ? <View style={[styles.filterDot, { backgroundColor: dot }]} /> : null}
+                {'dot' in f ? <View style={[styles.filterDot, { backgroundColor: f.dot }]} /> : null}
                 <Text style={[styles.filterChipLabel, active && styles.filterChipLabelActive]}>
-                  {label}
+                  {f.label}
                 </Text>
                 <View style={[styles.filterBadge, active && styles.filterBadgeActive]}>
                   <Text style={[styles.filterBadgeText, active && styles.filterBadgeTextActive]}>
-                    {statusCounts[key]}
+                    {counts[f.key]}
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -321,57 +369,52 @@ export default function AdminBuffetScreen() {
           style={styles.search}
           value={search}
           onChangeText={setSearch}
-          placeholder="Search buffet items..."
+          placeholder="Search dishes..."
           placeholderTextColor={colors.whiteMuted}
         />
 
-        {sections.length === 0 && extraRows.length === 0 ? (
+        {line.length === 0 ? (
           <View style={styles.card}>
-            <Text style={styles.hint}>No items match this filter.</Text>
+            <Text style={styles.hint}>Upload a buffet menu above to start refill tracking.</Text>
           </View>
-        ) : null}
-
-        {sections.map((section) => (
-          <View key={section.id} style={styles.categorySection}>
-            <Text style={styles.categoryTitle}>{section.title}</Text>
-            <View style={styles.card}>
-              {section.rows.length === 0 ? (
-                <Text style={styles.hint}>No matches in this section.</Text>
-              ) : (
-                section.rows.map((row) => (
-                  <AdminBuffetItemRow
-                    key={row.menuItemId}
-                    row={row}
-                    refillBusy={refillBusyId === row.menuItemId}
-                    servingBusy={servingBusyId === row.menuItemId}
-                    onToggleRefill={toggleRefill}
-                    onRemoveFromBuffet={removeFromBuffet}
-                    onToggleServing={toggleServing}
-                  />
-                ))
-              )}
+        ) : groups.length === 0 ? (
+          <View style={styles.card}>
+            <Text style={styles.hint}>No dishes match this filter.</Text>
+          </View>
+        ) : (
+          groups.map((group) => (
+            <View key={group.key} style={styles.categorySection}>
+              <Text style={styles.categoryTitle}>{group.title}</Text>
+              <View style={styles.card}>
+                {group.dishes.map((dish) => {
+                  const red = isBuffetDishNeedsRefill(dish)
+                  return (
+                    <View key={dish.menuItemId} style={[styles.refillRow, red ? styles.refillRowRed : styles.refillRowOk]}>
+                      {refillBusyId === dish.menuItemId ? (
+                        <ActivityIndicator size="small" color={colors.gold} style={styles.refillDot} />
+                      ) : (
+                        <TouchableOpacity
+                          onPress={() => toggleRefill(dish)}
+                          style={[styles.refillDot, { backgroundColor: red ? colors.error : colors.green }]}
+                          accessibilityRole="button"
+                          accessibilityLabel={
+                            red
+                              ? `${dish.name}, needs refill. Tap when restocked.`
+                              : `${dish.name}, stocked. Tap to request a refill.`
+                          }
+                        />
+                      )}
+                      <Text style={[styles.refillName, red && styles.refillNameRed]}>{dish.name}</Text>
+                      <Text style={[styles.refillState, red && styles.refillNameRed]}>
+                        {red ? 'Needs refill' : 'Stocked'}
+                      </Text>
+                    </View>
+                  )
+                })}
+              </View>
             </View>
-          </View>
-        ))}
-
-        {extraRows.length > 0 ? (
-          <View style={styles.categorySection}>
-            <Text style={styles.categoryTitle}>More menu items</Text>
-            <View style={styles.card}>
-              {extraRows.map((row) => (
-                <AdminBuffetItemRow
-                  key={row.menuItemId}
-                  row={row}
-                  refillBusy={refillBusyId === row.menuItemId}
-                  servingBusy={servingBusyId === row.menuItemId}
-                  onToggleRefill={toggleRefill}
-                  onRemoveFromBuffet={removeFromBuffet}
-                  onToggleServing={toggleServing}
-                />
-              ))}
-            </View>
-          </View>
-        ) : null}
+          ))
+        )}
       </View>
 
       <View style={styles.section}>
@@ -389,6 +432,53 @@ export default function AdminBuffetScreen() {
 }
 
 const styles = StyleSheet.create({
+  mealCard: {
+    backgroundColor: 'rgba(201, 162, 75, 0.06)',
+    borderRadius: borderRadius.lg,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    gap: spacing.sm,
+  },
+  mealCardOff: { opacity: 0.8 },
+  mealHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  mealTitle: { fontFamily: fonts.sansBold, color: '#000000', fontSize: 16 },
+  mealHours: { fontFamily: fonts.sans, color: '#000000', opacity: 0.7, fontSize: 12, marginTop: 2 },
+  servingCol: { alignItems: 'flex-end', gap: 4 },
+  servingLabel: { fontFamily: fonts.sansMedium, color: '#2e7d32', fontSize: 12 },
+  servingLabelOff: { color: colors.error },
+  pageHint: { fontFamily: fonts.sans, color: '#000000', opacity: 0.7, fontSize: 13, marginBottom: spacing.sm },
+  menuInput: {
+    minHeight: 200,
+    backgroundColor: colors.backgroundCard,
+    borderRadius: borderRadius.lg,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    padding: spacing.md,
+    fontFamily: fonts.sans,
+    fontSize: 15,
+    lineHeight: 22,
+    color: colors.white,
+  },
+  uploadRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: spacing.md, marginTop: spacing.sm },
+  uploadStatus: { fontFamily: fonts.sansMedium, color: '#000000', fontSize: 13, flexShrink: 1 },
+  uploadStatusDirty: { color: colors.error },
+  refillRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  refillRowOk: { backgroundColor: 'rgba(67, 160, 71, 0.06)' },
+  refillRowRed: { backgroundColor: 'rgba(239, 83, 80, 0.08)' },
+  refillDot: { width: 28, height: 28, borderRadius: 14, borderWidth: 2, borderColor: 'rgba(255,255,255,0.2)' },
+  refillName: { flex: 1, fontFamily: fonts.sansMedium, color: colors.white, fontSize: 14 },
+  refillNameRed: { color: colors.error },
+  refillState: { fontFamily: fonts.sans, color: colors.whiteMuted, fontSize: 12 },
   container: { flex: 1 },
   content: {
     padding: spacing.lg,

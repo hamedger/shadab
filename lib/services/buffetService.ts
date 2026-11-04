@@ -11,6 +11,7 @@ import {
   GRAND_OPENING_START,
   isGrandOpeningWindow,
   isMealServedOn,
+  isMealSwitchedOn,
   isWeekendBuffetDay,
   OPENING_DAY_FIRST_MEAL,
   BREAKFAST_AND_24_HOURS_START_LABEL,
@@ -68,6 +69,7 @@ export function getMealStatusesForDate(dateString: string): BuffetMealStatus[] {
       daysLabel,
       otherDaysPriceLabel,
       isSpecial: priceCents < regularPriceCents,
+      notServing: false,
     }
   })
 }
@@ -86,9 +88,11 @@ function formatDateShort(dateString: string): string {
 export function findCurrentMeal(
   dateString: string,
   minutes: number,
+  isSwitchedOn: (meal: BuffetMeal) => boolean = () => true,
 ): { meal: BuffetMeal; serviceDate: string } | null {
   const yesterday = addDaysToDateString(dateString, -1)
   for (const meal of BUFFET_MEAL_ORDER) {
+    if (!isSwitchedOn(meal)) continue
     const { start, end } = getMealWindowMinutes(meal)
     if (minutes >= start && minutes < end && isMealServedOn(dateString, meal)) {
       return { meal, serviceDate: dateString }
@@ -104,11 +108,12 @@ export function findCurrentMeal(
 function findNextMeal(
   dateString: string,
   minutes: number,
+  isSwitchedOn: (meal: BuffetMeal) => boolean,
 ): { meal: BuffetMeal; serviceDate: string; minutesUntil: number } | null {
   for (let dayOffset = 0; dayOffset <= 31; dayOffset++) {
     const date = addDaysToDateString(dateString, dayOffset)
     for (const meal of BUFFET_MEAL_ORDER) {
-      if (!isMealServedOn(date, meal)) continue
+      if (!isSwitchedOn(meal) || !isMealServedOn(date, meal)) continue
       const startFromNow = getMealWindowMinutes(meal).start + dayOffset * 1440 - minutes
       if (startFromNow > 0) return { meal, serviceDate: date, minutesUntil: startFromNow }
     }
@@ -121,20 +126,21 @@ export interface ComputeBuffetStatusOptions {
   now: Date
 }
 
-/** Breakfast 7–12:30 (daily from Oct 21) and dinner 7 PM–midnight daily; lunch coming soon (America/Chicago). */
+/** Breakfast 7 AM–1 PM and dinner 6:30 PM–1 AM daily (unless switched off in Admin → Buffet); lunch coming soon (America/Chicago). */
 export function computeBuffetStatus({
   config,
   now,
 }: ComputeBuffetStatusOptions): Omit<BuffetStatus, 'isLoading'> {
   const { dateString, minutes } = getRestaurantNow(now)
-  const current = findCurrentMeal(dateString, minutes)
+  const isSwitchedOn = (meal: BuffetMeal) => isMealSwitchedOn(config?.mealServing, meal)
+  const current = findCurrentMeal(dateString, minutes, isSwitchedOn)
   const displayDate = dateString < GRAND_OPENING_START ? GRAND_OPENING_START : dateString
 
   let nextSessionLabel = ''
   let countdownMinutes: number | null = null
 
   if (!current) {
-    const next = findNextMeal(dateString, minutes)
+    const next = findNextMeal(dateString, minutes, isSwitchedOn)
     if (next) {
       const time = formatBuffetTime(BUFFET_MEALS[next.meal].start)
       const label = BUFFET_MEALS[next.meal].label
@@ -155,11 +161,21 @@ export function computeBuffetStatus({
     isOpen: current !== null,
     currentSession: current?.meal ?? null,
     currentPrice: current ? getBuffetMealPriceCents(current.serviceDate, current.meal) : 0,
-    meals: getMealStatusesForDate(displayDate),
+    meals: getMealStatusesForDate(displayDate).map((m) => ({
+      ...m,
+      notServing: !m.comingSoon && !isSwitchedOn(m.meal),
+    })),
     nextSessionLabel,
     countdownMinutes,
     todaysDishes: config?.todaysDishes ?? [],
     specialNote: config?.specialNote ?? '',
+    mealMenus: BUFFET_MEAL_ORDER.filter(
+      (meal) => isSwitchedOn(meal) && config?.mealMenus?.[meal]?.text?.trim(),
+    ).map((meal) => ({
+      meal,
+      label: BUFFET_MEALS[meal].label,
+      text: config!.mealMenus![meal]!.text,
+    })),
   }
 }
 
