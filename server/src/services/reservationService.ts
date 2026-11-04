@@ -78,8 +78,9 @@ export async function createPendingReservation(
   const phoneDigits = input.customerPhone.replace(/\D/g, '')
   if (phoneDigits.length < 10) throw new Error('Valid phone number is required')
   if (!DATE_RE.test(input.date)) throw new Error('Date must be YYYY-MM-DD')
-  if (input.meal === 'breakfast' || input.meal === 'lunch') throw new Error(BUFFET_COMING_SOON_MESSAGE)
-  if (!RESERVABLE_MEALS.includes(input.meal as BuffetMeal)) throw new Error('Meal is required (dinner)')
+  // Bookable meals come from the schedule (coming-soon meals excluded); never hard-code meal names.
+  if (BUFFET_MEALS[input.meal as BuffetMeal]?.comingSoon) throw new Error(BUFFET_COMING_SOON_MESSAGE)
+  if (!RESERVABLE_MEALS.includes(input.meal as BuffetMeal)) throw new Error('Meal is required (breakfast or dinner)')
   const meal = input.meal as BuffetMeal
   if (!getReservationSlots(meal).includes(input.time.trim())) {
     throw new Error('Time is required and must be a seating time for the selected meal')
