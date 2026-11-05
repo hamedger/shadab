@@ -137,6 +137,11 @@ cloverRouter.post('/checkout', requireAuth, async (req: AuthedRequest, res) => {
   }
 })
 
+// Some Clover URL checks use GET.
+cloverRouter.get('/webhook', (_req, res) => {
+  res.sendStatus(200)
+})
+
 cloverRouter.post('/webhook', async (req, res) => {
   try {
     assertAnyCloverLocationConfigured()
@@ -144,14 +149,20 @@ cloverRouter.post('/webhook', async (req, res) => {
     const rawBody = Buffer.isBuffer(req.body) ? req.body.toString('utf8') : ''
     const signature = req.header('Clover-Signature') ?? req.header('clover-signature') ?? undefined
 
+    // Clover verifies the URL with a test request when the webhook is saved and only saves it on a
+    // 2xx. Answer 200 to anything that isn't a signed payment event, but act on nothing unsigned.
     if (!rawBody.trim()) {
-      res.status(400).json({ error: 'Empty webhook body — check raw JSON parser for this route' })
+      console.log('[webhook] Empty request (Clover URL verification?) — 200')
+      res.sendStatus(200)
       return
     }
 
     const event = parseCloverWebhook(rawBody)
     if (!event) {
-      res.status(400).json({ error: 'Invalid webhook payload' })
+      console.log('[webhook] Not a payment event (Clover URL verification?) — 200', {
+        body: rawBody.slice(0, 300),
+      })
+      res.sendStatus(200)
       return
     }
 
@@ -161,11 +172,14 @@ cloverRouter.post('/webhook', async (req, res) => {
     const verificationSecrets = secrets.length > 0 ? secrets : getAllCloverWebhookSecrets()
 
     if (!verifyCloverSignatureWithAnySecret(rawBody, signature, verificationSecrets)) {
-      console.warn('[webhook] Rejected: invalid Clover signature — check webhookSecret in CLOVER_LOCATIONS_JSON', {
+      console.warn('[webhook] Ignored: invalid Clover signature — check webhookSecret in CLOVER_LOCATIONS_JSON', {
         merchantId: event.merchantId,
+        type: event.type,
+        status: event.status,
         hasSignature: Boolean(signature),
       })
-      res.status(400).json({ error: 'Invalid Clover signature' })
+      // 200 so Clover's URL verification passes; the event is NOT applied without a valid signature.
+      res.sendStatus(200)
       return
     }
 
