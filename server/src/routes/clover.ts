@@ -190,6 +190,12 @@ cloverRouter.post('/webhook', async (req, res) => {
     })
 
     if (event.type !== 'PAYMENT' || !event.checkoutSessionId) {
+      if (event.type === 'PAYMENT') {
+        // Payment we can't match to a checkout — log the payload (ids/amount only) to see its shape.
+        console.warn('[webhook] Payment without a checkout session id — cannot match a reservation', {
+          body: rawBody.slice(0, 600),
+        })
+      }
       res.sendStatus(200)
       return
     }

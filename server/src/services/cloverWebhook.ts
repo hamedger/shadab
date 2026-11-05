@@ -64,6 +64,17 @@ export function parseCloverWebhook(rawBody: string): ParsedCloverWebhook | null 
       ).trim()
     }
 
+    // Docs put the session id in `data`; real payloads also send it top-level as checkoutSessionId.
+    if (!checkoutSessionId) {
+      checkoutSessionId = String(
+        payload.checkoutSessionId ??
+          payload.checkoutSessionUUID ??
+          payload.CheckoutSessionId ??
+          payload.checkout_session_id ??
+          '',
+      ).trim()
+    }
+
     if (!status || !type) {
       return null
     }

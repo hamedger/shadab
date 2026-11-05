@@ -45,7 +45,7 @@ export function CloverReturnHandler() {
       typeof error === 'object' && error !== null && (error as { code?: string }).code === 'functions/not-found'
 
     setTone('checking')
-    setMessage('Confirming your payment with Clover…')
+    setMessage('This usually takes a few seconds — please keep this page open.')
     clearCart()
     clearCheckoutContext()
     router.replace('/(tabs)/' as never)
