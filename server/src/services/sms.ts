@@ -85,11 +85,15 @@ export async function textReservationConfirmed(reservationId: string): Promise<v
       tx.update(ref, { customerSmsSent: true, updatedAt: FieldValue.serverTimestamp() })
       return data
     })
-    if (!claimed) return
+    if (!claimed) {
+      console.log('[sms] Not sent (already sent, not confirmed, or no valid US phone)', { reservationId })
+      return
+    }
 
     try {
       const sid = await sendSms(toUsE164(String(claimed.phone))!, buildReservationConfirmedSms(claimed))
       await ref.update({ customerSmsSid: sid })
+      console.log('[sms] Reservation text sent', { reservationId, twilioSid: sid })
     } catch (error) {
       console.error('[sms] Reservation text failed', {
         reservationId,

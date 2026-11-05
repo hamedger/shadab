@@ -1,7 +1,7 @@
 import { RESTAURANT_PHONE } from '../../constants/config'
 import { formatPhoneDisplay } from '../../lib/locationUtils'
 import React, { useEffect, useRef, useState } from 'react'
-import { View, Text, StyleSheet, Platform } from 'react-native'
+import { View, Text, StyleSheet, Modal, ActivityIndicator, TouchableOpacity } from 'react-native'
 import { useGlobalSearchParams, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { useCartStore } from '../../store/cartStore'
@@ -9,7 +9,7 @@ import {
   clearCheckoutContext,
   confirmCloverOrderAfterRedirect,
 } from '../../lib/services/cloverCheckout'
-import { confirmCloverReservationAfterRedirect } from '../../lib/services/reservationCheckout'
+import { readOwnReservationStatus } from '../../lib/services/reservationCheckout'
 import { colors, spacing, borderRadius, fonts } from '../../constants/theme'
 
 function formatOrderShortId(orderId: string): string {
@@ -30,6 +30,7 @@ export function CloverReturnHandler() {
   const clearCart = useCartStore((s) => s.clearCart)
   const handledRef = useRef<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
+  const [tone, setTone] = useState<'checking' | 'success' | 'warning'>('checking')
 
   useEffect(() => {
     const checkoutSessionId = params.session_id?.trim()
@@ -43,13 +44,16 @@ export function CloverReturnHandler() {
     const isNotFound = (error: unknown) =>
       typeof error === 'object' && error !== null && (error as { code?: string }).code === 'functions/not-found'
 
+    setTone('checking')
     setMessage('Confirming your payment with Clover…')
     clearCart()
     clearCheckoutContext()
     router.replace('/(tabs)/' as never)
 
     void (async () => {
-      let kind: 'order' | 'reservation' | null = null
+      // Reservations: read the guest's own reservation from Firestore. Orders: ask the function.
+      let kind: 'order' | 'reservation' | null =
+        orderIdParam && (await readOwnReservationStatus(orderIdParam)) ? 'reservation' : null
       let finalMessage: string | null = null
       let pendingKind: 'order' | 'reservation' | null = null
 
@@ -76,12 +80,16 @@ export function CloverReturnHandler() {
 
         if (kind !== 'order') {
           try {
-            const r = await confirmCloverReservationAfterRedirect(checkoutSessionId, orderIdParam)
+            const r = orderIdParam ? await readOwnReservationStatus(orderIdParam) : null
             if (r?.reservationId) {
               kind = 'reservation'
-              if (r.status !== 'pending') {
+              if (r.status === 'cancelled') {
+                finalMessage = `This reservation was cancelled — please call ${formatPhoneDisplay(RESTAURANT_PHONE)} if you were charged.`
+                break
+              }
+              if (r.status === 'confirmed') {
                 finalMessage =
-                  `Payment confirmed! Reservation #${r.reservationId.slice(-6).toUpperCase()} — ${r.date} at ${r.time}. Show your confirmation email at the host stand. ` +
+                  `Deposit received — you're booked! Reservation #${r.reservationId.slice(-6).toUpperCase()}, ${r.date} at ${r.time}. We've texted your confirmation. ` +
                   `Need to cancel? Call ${formatPhoneDisplay(RESTAURANT_PHONE)} — deposit refunded up to 48 hours before; within 48 hours it's kept.`
                 break
               }
@@ -93,14 +101,12 @@ export function CloverReturnHandler() {
         }
       }
 
+      setTone(finalMessage && !finalMessage.startsWith('This reservation was cancelled') ? 'success' : 'warning')
       setMessage(
         finalMessage ??
           `We haven't received Clover's payment confirmation for your ${pendingKind ?? 'order'} yet. ` +
             `If you completed payment it will be confirmed shortly — questions? Call ${formatPhoneDisplay(RESTAURANT_PHONE)}.`,
       )
-      if (Platform.OS === 'web' && typeof window !== 'undefined') {
-        window.setTimeout(() => setMessage(null), kind === 'reservation' ? 20000 : 10000)
-      }
     })()
     // No cleanup: router.replace above drops session_id and re-runs this effect, which must not
     // stop the poll (handledRef already prevents a second run).
@@ -108,29 +114,84 @@ export function CloverReturnHandler() {
 
   if (!message) return null
 
+  const title =
+    tone === 'checking' ? 'Confirming your payment…' : tone === 'success' ? 'You\'re all set!' : 'Payment not confirmed yet'
+
   return (
-    <View style={styles.banner} accessibilityRole="alert">
-      <Ionicons name="checkmark-circle" size={20} color={colors.background} />
-      <Text style={styles.bannerText}>{message}</Text>
-    </View>
+    <Modal visible transparent animationType="fade" onRequestClose={() => setMessage(null)}>
+      <View style={styles.overlay}>
+        <View style={styles.card} accessibilityRole="alert">
+          {tone === 'checking' ? (
+            <ActivityIndicator size="large" color={colors.gold} />
+          ) : (
+            <Ionicons
+              name={tone === 'success' ? 'checkmark-circle' : 'alert-circle'}
+              size={56}
+              color={tone === 'success' ? colors.green : colors.gold}
+            />
+          )}
+          <Text style={styles.title}>{title}</Text>
+          <Text style={styles.message}>{message}</Text>
+          {tone !== 'checking' ? (
+            <TouchableOpacity
+              style={styles.button}
+              onPress={() => setMessage(null)}
+              accessibilityRole="button"
+              accessibilityLabel="Close"
+            >
+              <Text style={styles.buttonText}>Done</Text>
+            </TouchableOpacity>
+          ) : null}
+        </View>
+      </View>
+    </Modal>
   )
 }
 
 const styles = StyleSheet.create({
-  banner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    backgroundColor: colors.gold,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.borderStrong,
-  },
-  bannerText: {
+  overlay: {
     flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: spacing.lg,
+  },
+  card: {
+    width: '100%',
+    maxWidth: 440,
+    backgroundColor: colors.backgroundCard,
+    borderRadius: borderRadius.xl,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    padding: spacing.xl,
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  title: {
+    fontFamily: fonts.serif,
+    color: colors.white,
+    fontSize: 24,
+    textAlign: 'center',
+  },
+  message: {
+    fontFamily: fonts.sans,
+    color: colors.white,
+    fontSize: 16,
+    lineHeight: 24,
+    textAlign: 'center',
+  },
+  button: {
+    marginTop: spacing.sm,
+    backgroundColor: colors.gold,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.md,
+    minWidth: 160,
+    alignItems: 'center',
+  },
+  buttonText: {
     fontFamily: fonts.sansBold,
     color: colors.background,
-    fontSize: 14,
+    fontSize: 16,
   },
 })

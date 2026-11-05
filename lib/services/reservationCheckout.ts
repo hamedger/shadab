@@ -1,5 +1,5 @@
 import { getFunctions, httpsCallable } from 'firebase/functions'
-import { collection, doc, runTransaction, serverTimestamp } from 'firebase/firestore'
+import { collection, doc, getDoc, runTransaction, serverTimestamp } from 'firebase/firestore'
 import app, { auth, db } from '../firebase'
 import { getApiUrl } from '../../constants/api'
 import {
@@ -92,6 +92,33 @@ export async function confirmCloverReservationAfterRedirect(
     ...(reservationId?.trim() ? { reservationId: reservationId.trim() } : {}),
   })
   return result.data as ConfirmedCloverReservation
+}
+
+/**
+ * The signed-in guest's own reservation, read straight from Firestore (rules allow the owner).
+ * Used after the Clover redirect to wait for the webhook — no Cloud Function needed.
+ */
+export async function readOwnReservationStatus(
+  reservationId: string,
+): Promise<ConfirmedCloverReservation | null> {
+  await auth.authStateReady()
+  if (!auth.currentUser || !reservationId.trim()) return null
+  try {
+    const snap = await getDoc(doc(db, 'reservations', reservationId.trim()))
+    if (!snap.exists()) return null
+    const r = snap.data()
+    return {
+      reservationId: snap.id,
+      status: String(r.status ?? ''),
+      date: String(r.date ?? ''),
+      time: String(r.time ?? ''),
+      partySize: Number(r.partySize ?? 1),
+      feeCents: Number(r.feeCents ?? 0),
+    }
+  } catch {
+    // Not this guest's reservation (or an order id) — permission denied.
+    return null
+  }
 }
 
 export interface PayAtRestaurantReservation {

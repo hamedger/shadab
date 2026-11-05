@@ -143,9 +143,11 @@ function ReservationCard({
         </Text>
       ) : reservation.feeCents != null ? (
         <Text style={styles.noteLine}>
-          {reservation.balanceDueCents
-            ? `Deposit paid ${formatCents(reservation.feeCents)} · Balance due ${formatCents(reservation.balanceDueCents)}`
-            : `Prepaid ${formatCents(reservation.feeCents)}`}
+          {reservation.status === 'pending'
+            ? `Deposit ${formatCents(reservation.feeCents)} — not paid yet (waiting for Clover)`
+            : reservation.balanceDueCents
+              ? `Deposit paid ${formatCents(reservation.feeCents)} · Balance due ${formatCents(reservation.balanceDueCents)}`
+              : `Prepaid ${formatCents(reservation.feeCents)}`}
           {reservation.status === 'cancelled' && reservation.refundCents != null
             ? ` · Refund ${formatCents(reservation.refundCents)}${
                 reservation.cancellationFeeCents

@@ -161,9 +161,19 @@ cloverRouter.post('/webhook', async (req, res) => {
     const verificationSecrets = secrets.length > 0 ? secrets : getAllCloverWebhookSecrets()
 
     if (!verifyCloverSignatureWithAnySecret(rawBody, signature, verificationSecrets)) {
+      console.warn('[webhook] Rejected: invalid Clover signature — check webhookSecret in CLOVER_LOCATIONS_JSON', {
+        merchantId: event.merchantId,
+        hasSignature: Boolean(signature),
+      })
       res.status(400).json({ error: 'Invalid Clover signature' })
       return
     }
+
+    console.log('[webhook] Clover event', {
+      type: event.type,
+      status: event.status,
+      checkoutSessionId: event.checkoutSessionId,
+    })
 
     if (event.type !== 'PAYMENT' || !event.checkoutSessionId) {
       res.sendStatus(200)
@@ -173,7 +183,10 @@ cloverRouter.post('/webhook', async (req, res) => {
     if (event.status === 'APPROVED') {
       const orderId = await markOrderPaidByCheckoutSession(event.checkoutSessionId, event.paymentId)
       if (!orderId) {
-        await markReservationPaidByCheckoutSession(event.checkoutSessionId, event.paymentId)
+        const reservationId = await markReservationPaidByCheckoutSession(event.checkoutSessionId, event.paymentId)
+        console.log('[webhook] Payment approved', { reservationId, checkoutSessionId: event.checkoutSessionId })
+      } else {
+        console.log('[webhook] Payment approved', { orderId })
       }
     } else if (event.status === 'DECLINED') {
       const orderId = await markOrderDeclinedByCheckoutSession(event.checkoutSessionId)
