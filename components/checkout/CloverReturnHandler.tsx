@@ -45,7 +45,7 @@ export function CloverReturnHandler() {
       typeof error === 'object' && error !== null && (error as { code?: string }).code === 'functions/not-found'
 
     setTone('checking')
-    setMessage('This usually takes a few seconds — please keep this page open.')
+    setMessage('checking')
     clearCart()
     clearCheckoutContext()
     router.replace('/(tabs)/' as never)
@@ -131,7 +131,7 @@ export function CloverReturnHandler() {
             />
           )}
           <Text style={styles.title}>{title}</Text>
-          <Text style={styles.message}>{message}</Text>
+          {tone !== 'checking' ? <Text style={styles.message}>{message}</Text> : null}
           {tone !== 'checking' ? (
             <TouchableOpacity
               style={styles.button}
