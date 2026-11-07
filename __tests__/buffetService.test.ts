@@ -14,6 +14,7 @@ import {
   getReservationBlockIndex,
   getReservationSeatsLeft,
   getReservationSlots,
+  getWalkInNote,
   getReservationStartMs,
   getReservationSubtotalCents,
   getReservationTotalCents,
@@ -158,14 +159,16 @@ describe('buffetService', () => {
       expect(getReservationTotalCents('2026-10-30', 'lunch', { adults: 1, children: 0, infants: 0 })).toBe(2768)
     })
 
-    it('ends seatings 30 minutes before close', () => {
+    it('ends seatings at the reservation cut-off, or 30 minutes before close', () => {
       const dinner = getReservationSlots('dinner')
       expect(dinner[0]).toBe('6:30 PM')
-      expect(dinner[dinner.length - 1]).toBe('12:30 AM')
+      expect(dinner[dinner.length - 1]).toBe('9:00 PM')
       const lunch = getReservationSlots('lunch')
       expect(lunch[0]).toBe('2:00 PM')
       expect(lunch[lunch.length - 1]).toBe('4:30 PM')
-      expect(getReservationSlots('breakfast').slice(-1)[0]).toBe('12:30 PM')
+      expect(getReservationSlots('breakfast').slice(-1)[0]).toBe('10:00 AM')
+      expect(getWalkInNote('breakfast')).toBe('Reservations until 10 AM · 10 AM–1 PM first come, first served')
+      expect(getWalkInNote('dinner')).toBe('Reservations until 9 PM · 9 PM–1 AM first come, first served')
     })
 
     it('converts seatings to Chicago time across the DST change', () => {
@@ -233,9 +236,9 @@ describe('buffetService', () => {
       expect(getReservationBlockIndex('dinner', '12:30 AM')).toBe(3)
     })
 
-    it('puts every dinner seating in one of 4 blocks', () => {
+    it('puts every bookable dinner seating (6:30–9 PM) in blocks 0–1', () => {
       const blocks = new Set(getReservationSlots('dinner').map((slot) => getReservationBlockIndex('dinner', slot)))
-      expect([...blocks]).toEqual([0, 1, 2, 3])
+      expect([...blocks]).toEqual([0, 1])
     })
 
     it('builds a per-date block id; after-midnight seatings stay on the evening they belong to', () => {

@@ -14,6 +14,7 @@ import { useBuffet } from '../../hooks/useBuffet'
 import { OrderOnlinePicker } from '../location/OrderOnlinePicker'
 import { RESTAURANT_STATS } from '../../constants/home'
 import { FullyReservedNotice } from '../shared/FullyReservedNotice'
+import { WalkInNotice } from '../shared/WalkInNotice'
 import {
   APP_TAGLINE,
   ONLINE_ORDERING_ENABLED,
@@ -155,6 +156,7 @@ export function BuffetHero() {
         </View>
 
         <FullyReservedNotice style={styles.fullyReserved} />
+        <WalkInNotice style={styles.fullyReserved} />
 
         <View style={styles.ownership}>
           <Text style={styles.ownershipText}>{OWNERSHIP_NOTE}</Text>

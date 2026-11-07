@@ -74,14 +74,17 @@ describe('reservationService validation', () => {
     expect(result.valid).toBe(false)
   })
 
-  it('accepts the last dinner seating (12:30 AM) and Sundays', () => {
-    expect(validateReservation({ ...validInput, date: '2026-10-18', time: '12:30 AM' }).valid).toBe(true)
-    expect(validateReservation({ ...validInput, date: '2026-10-18', time: '1:00 AM' }).valid).toBe(false)
+  it('accepts the last dinner seating (9 PM) and Sundays; later is walk-in only', () => {
+    expect(validateReservation({ ...validInput, date: '2026-10-18', time: '9:00 PM' }).valid).toBe(true)
+    expect(validateReservation({ ...validInput, date: '2026-10-18', time: '9:15 PM' }).valid).toBe(false)
+    expect(validateReservation({ ...validInput, date: '2026-10-18', time: '12:30 AM' }).valid).toBe(false)
   })
 
   it('takes breakfast reservations', () => {
     const result = validateReservation({ ...validInput, date: '2026-10-21', meal: 'breakfast', time: '8:00 AM' })
     expect(result.valid).toBe(true)
+    expect(validateReservation({ ...validInput, date: '2026-10-21', meal: 'breakfast', time: '10:00 AM' }).valid).toBe(true)
+    expect(validateReservation({ ...validInput, date: '2026-10-21', meal: 'breakfast', time: '10:15 AM' }).valid).toBe(false)
   })
 
   it('requires 2 hours notice for same-day seatings', () => {

@@ -20,6 +20,7 @@ import { useReservationCapacity } from '../hooks/useReservationCapacity'
 import { useFullyReserved } from '../hooks/useFullyReserved'
 import { useBuffet } from '../hooks/useBuffet'
 import { FULLY_RESERVED_MESSAGE, FullyReservedNotice } from '../components/shared/FullyReservedNotice'
+import { WalkInNotice } from '../components/shared/WalkInNotice'
 import { MAX_ADVANCE_DAYS } from '../lib/services/reservationService'
 import { formatBuffetTime, getMealStatusesForDate } from '../lib/services/buffetService'
 import {
@@ -49,6 +50,7 @@ import {
   getBuffetMealPriceCents,
   getChildBuffetPriceCents,
   getRestaurantNow,
+  getWalkInNote,
   OPENING_DAY_FIRST_MEAL,
 } from '../constants/buffetSchedule'
 import { RESTAURANT_PHONE } from '../constants/config'
@@ -284,6 +286,7 @@ export default function ReservationScreen() {
           </Text>
 
           <FullyReservedNotice style={{ marginBottom: spacing.md }} />
+          <WalkInNotice style={{ marginBottom: spacing.md }} />
 
           <View style={styles.warning}>
             <Ionicons name="calendar-outline" size={16} color={colors.white} />
@@ -379,12 +382,15 @@ export default function ReservationScreen() {
                   </TouchableOpacity>
                 )
               })}
+              {getWalkInNote(meal) ? (
+                <Text style={[styles.helper, styles.walkInHint]}>{getWalkInNote(meal)}.</Text>
+              ) : null}
               {slots.length === 0 ? (
                 <Text style={styles.helper}>No seatings left for this meal today — reservations need {RESERVATION_MIN_NOTICE_LABEL}' notice. Pick another meal or date.</Text>
               ) : null}
             </View>
           ) : (
-            <Text style={[styles.helper, { marginBottom: spacing.md }]}>Choose breakfast (7 AM–1 PM) or dinner (6:30 PM–1 AM) first. Lunch buffet coming soon.</Text>
+            <Text style={[styles.helper, { marginBottom: spacing.md }]}>Choose breakfast (reservations 7–10 AM) or dinner (reservations 6:30–9 PM) first. Lunch buffet coming soon.</Text>
           )}
           {selectedTimeTooSmall ? (
             <Text style={styles.inlineError}>{getReservationBlockFullMessage(selectedSeatsLeft ?? 0)}.</Text>
@@ -579,6 +585,7 @@ const styles = StyleSheet.create({
   errorText: { fontFamily: fonts.sans, color: colors.error, fontSize: 13 },
   inlineError: { fontFamily: fonts.sans, color: colors.error, fontSize: 12, marginBottom: spacing.md },
   helper: { fontFamily: fonts.sans, color: colors.whiteMuted, fontSize: 12 },
+  walkInHint: { width: '100%', color: colors.gold, fontFamily: fonts.sansBold, marginTop: spacing.xs },
   smsConsent: { fontFamily: fonts.sans, color: colors.whiteMuted, fontSize: 12, marginTop: -spacing.sm, marginBottom: spacing.md },
   fieldLabel: {
     fontFamily: fonts.sansMedium,

@@ -12,6 +12,7 @@ import { GrandOpeningBanner } from '../../components/shared/GrandOpeningBanner'
 import { groupBuffetDishesForCustomer } from '../../lib/buffetLayout'
 import { BuffetPriceCards } from '../../components/buffet/BuffetPriceCards'
 import { FullyReservedNotice } from '../../components/shared/FullyReservedNotice'
+import { WalkInNotice } from '../../components/shared/WalkInNotice'
 import { LARGE_PARTY_GRATUITY_TEXT } from '../../constants/reservation'
 import {
   BUFFET_MEALS,
@@ -90,6 +91,7 @@ export default function BuffetScreen() {
           <Text style={styles.goldBtnText}>Reserve</Text>
         </TouchableOpacity>
         <FullyReservedNotice style={styles.fullyReserved} />
+        <WalkInNotice style={styles.fullyReserved} />
       </View>
 
       <View style={styles.noteBlock}>
@@ -137,6 +139,7 @@ export default function BuffetScreen() {
           <Text style={styles.goldBtnText}>Reserve Your Table</Text>
         </TouchableOpacity>
         <Text style={styles.ctaNote}>We highly recommend everyone reserve — no reservation = seating not guaranteed</Text>
+        <WalkInNotice style={styles.fullyReserved} />
       </View>
     </ScrollView>
   )

@@ -21,6 +21,8 @@ export interface BuffetMealConfig {
   end: string
   /** Not served yet: shown as "coming soon" with no hours or price, and not bookable. */
   comingSoon?: boolean
+  /** Last online seating (24h HH:mm). After it, until close, the buffet is first come, first served. */
+  reservationsUntil?: string
   /** Every day — or Mon–Thu only when `weekend` is set. */
   regularPriceCents: number
   grandOpeningPriceCents: number
@@ -33,12 +35,14 @@ export const WEEKEND_BUFFET_DAYS = [5, 6, 0]
 
 export const BUFFET_COMING_SOON_MESSAGE = 'Lunch buffet coming soon — reserve breakfast or dinner'
 
-/** Breakfast 7 AM–1 PM and dinner 6:30 PM–1 AM every day, Sunday included; lunch buffet coming soon. */
+/** Breakfast 7 AM–1 PM and dinner 6:30 PM–1 AM every day, Sunday included; lunch buffet coming soon.
+ * Reservations: breakfast until 10 AM, dinner until 9 PM — after that, first come, first served. */
 export const BUFFET_MEALS: Record<BuffetMeal, BuffetMealConfig> = {
   breakfast: {
     label: 'Breakfast',
     start: '07:00',
     end: '13:00',
+    reservationsUntil: '10:00',
     regularPriceCents: 999,
     grandOpeningPriceCents: 999,
   },
@@ -55,6 +59,7 @@ export const BUFFET_MEALS: Record<BuffetMeal, BuffetMealConfig> = {
     // Runs past midnight, closing at 1 AM.
     start: '18:30',
     end: '01:00',
+    reservationsUntil: '21:00',
     regularPriceCents: 2499,
     grandOpeningPriceCents: 1999,
   },
@@ -240,11 +245,40 @@ export function parseSlotLabel(label: string): number | null {
   return (hour % 12) * 60 + minute + (isPm ? 12 * 60 : 0)
 }
 
-/** Seating times for a meal, 15 minutes apart, ending 30 minutes before close. */
-export function getReservationSlots(meal: BuffetMeal): string[] {
+/** Last bookable seating, minutes after midnight of the service day (may exceed 1440). */
+export function getLastReservationMinutes(meal: BuffetMeal): number {
   const { start, end } = getMealWindowMinutes(meal)
+  const lastBeforeClose = end - LAST_SEATING_BEFORE_CLOSE_MINUTES
+  const until = BUFFET_MEALS[meal].reservationsUntil
+  if (!until) return lastBeforeClose
+  let cutoff = parseHHmm(until)
+  if (cutoff < start) cutoff += 24 * 60
+  return Math.min(cutoff, lastBeforeClose)
+}
+
+/** "6:30 PM" → "6:30 PM", "10:00 AM" → "10 AM". */
+function shortTimeLabel(totalMinutes: number): string {
+  return formatMinutesLabel(totalMinutes).replace(':00', '')
+}
+
+/**
+ * Walk-in window after the last reservation, e.g. "Reservations until 10 AM · 10 AM–1 PM first
+ * come, first served". Null when the whole meal is bookable.
+ */
+export function getWalkInNote(meal: BuffetMeal): string | null {
+  const until = BUFFET_MEALS[meal].reservationsUntil
+  if (!until) return null
+  const { end } = getMealWindowMinutes(meal)
+  const from = shortTimeLabel(parseHHmm(until))
+  return `Reservations until ${from} · ${from}–${shortTimeLabel(end)} first come, first served`
+}
+
+/** Seating times for a meal, 15 minutes apart, up to its reservation cut-off (or 30 minutes before close). */
+export function getReservationSlots(meal: BuffetMeal): string[] {
+  const { start } = getMealWindowMinutes(meal)
+  const last = getLastReservationMinutes(meal)
   const slots: string[] = []
-  for (let m = start; m <= end - LAST_SEATING_BEFORE_CLOSE_MINUTES; m += RESERVATION_SLOT_INTERVAL_MINUTES) {
+  for (let m = start; m <= last; m += RESERVATION_SLOT_INTERVAL_MINUTES) {
     slots.push(formatMinutesLabel(m))
   }
   return slots
